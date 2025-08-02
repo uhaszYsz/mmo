@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Game Client</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-title { font-family: 'MedievalSharp', cursive; }
+        .area-container { min-height: 500px; }
+        .enemy-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .enemy-card:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #334155; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #64748b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .hp-bar-foreground { background-color: #22c55e; transition: width 0.2s ease-in-out; }
+        .mp-bar-foreground { background-color: #3b82f6; transition: width 0.2s ease-in-out; }
+        .stamina-bar-foreground { background-color: #f59e0b; transition: width 0.2s ease-in-out; }
+        .xp-bar-foreground { background-color: #8b5cf6; transition: width 0.2s ease-in-out; }
+        .brick-bar-foreground { background-color: #f59e0b; transition: width 0.2s ease-in-out; }
+        .construction-bar-foreground { background-color: #3b82f6; transition: width 0.2s ease-in-out; }
+        .tab-button.active { background-color: #eab308; color: #1e293b; }
+        .chat-channel-button.active { background-color: #eab308; color: #1e293b; }
+        #connection-status.disconnected { background-color: #ef4444; }
+        #connection-status.connected { background-color: #22c55e; }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="bg-slate-800 text-slate-200 flex flex-col p-4 md:p-8 gap-8 h-screen">
+
+    <div id="connection-status" class="disconnected fixed top-0 left-0 w-full h-1.5 transition-colors duration-500 z-50"></div>
+    <div id="connection-text" class="fixed top-2 left-4 text-xs text-white font-semibold z-50">Connecting...</div>
+
+    <div class="w-full max-w-full mx-auto flex flex-col xl:flex-row gap-8 flex-1">
+        
+        <div class="w-full xl:w-2/3 flex flex-col">
+            <div class="bg-slate-700 p-4 rounded-lg border border-slate-600 shadow-lg bg-gradient-to-b from-slate-700 to-slate-800 flex flex-col flex-1">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 id="main-view-title" class="text-4xl font-title text-yellow-400">🗺️ Area View</h1>
+                    <div id="main-view-controls" class="flex gap-2">
+                        <button id="toggle-map-view" data-action="toggle-map-view" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">🗺️ World Map</button>
+                        <button id="summon-boss" data-action="summon-boss" class="bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">👹 Summon Boss</button>
+                    </div>
+                </div>
+                <div id="main-view-content" class="flex-1"></div>
+                <div id="area-actions-panel" class="mt-4"></div>
+            </div>
+        </div>
+
+        <div class="w-full xl:w-1/3 flex flex-col gap-8">
+            <div id="chat-panel" class="w-full bg-slate-700 rounded-lg border border-slate-600 shadow-lg p-4 flex flex-col bg-gradient-to-b from-slate-700 to-slate-800 h-96">
+                <h2 class="text-3xl font-title text-yellow-400 mb-2">💬 Chat</h2>
+                <div id="chat-messages" class="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-2 text-sm border-t border-b border-slate-600 py-2"></div>
+                <div class="flex items-center gap-2">
+                    <div id="chat-channels" class="flex rounded-md bg-slate-800 p-1">
+                        <button data-action="switch-chat-channel" data-channel="world" class="chat-channel-button px-3 py-1 text-xs font-semibold rounded-md transition-colors">World</button>
+                        <button data-action="switch-chat-channel" data-channel="area" class="chat-channel-button px-3 py-1 text-xs font-semibold rounded-md transition-colors">Area</button>
+                        <button data-action="switch-chat-channel" data-channel="party" class="chat-channel-button px-3 py-1 text-xs font-semibold rounded-md transition-colors">Party</button>
+                    </div>
+                    <input type="text" id="chat-input" class="flex-1 bg-slate-900 border border-slate-600 rounded-md px-3 py-1 focus:ring-2 focus:ring-yellow-500 focus:outline-none" placeholder="Type a message...">
+                    <button id="send-chat-button" data-action="send-chat" class="bg-amber-600 text-white font-semibold px-4 py-1 rounded-md hover:bg-amber-700">Send</button>
+                </div>
+            </div>
+
+            <div class="bg-slate-700 rounded-lg border border-slate-600 shadow-lg bg-gradient-to-b from-slate-700 to-slate-800 flex-1 flex flex-col min-h-0">
+                <div id="tabs-container" class="flex border-b border-slate-600">
+                    <button data-action="switch-tab" data-tab="character" class="tab-button flex-1 p-3 font-semibold text-yellow-400 hover:bg-slate-600">Character</button>
+                    <button data-action="switch-tab" data-tab="teams" class="tab-button flex-1 p-3 font-semibold text-yellow-400 hover:bg-slate-600">Teams</button>
+                </div>
+                <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                    <div id="character" class="tab-content hidden"></div>
+                    <div id="teams" class="tab-content hidden"></div>
+                    <div id="admin" class="tab-content hidden"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Info Popup Modal -->
+    <div id="item-popup-modal" class="modal-backdrop hidden">
+        <div class="relative p-6 border border-blue-600 w-96 shadow-lg rounded-md bg-slate-800 text-slate-200 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="item-popup-title" class="text-xl font-title text-blue-400">Item Information</h3>
+                <button id="close-item-popup" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div id="item-popup-content" class="space-y-4">
+                <!-- Item content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="login-modal" class="modal-backdrop hidden">
+      <div class="relative p-5 border border-yellow-600 w-96 shadow-lg rounded-md bg-slate-800 text-slate-200">
+        <div class="mt-3 text-center">
+          <h3 class="text-2xl leading-6 font-title text-yellow-400">Welcome, Adventurer!</h3>
+          <div class="mt-2 px-7 py-3"><p class="text-sm text-slate-400">Enter your name and password to begin your journey or create a new character.</p></div>
+          <div class="px-4 py-3 space-y-4">
+            <input id="player-name-input" type="text" placeholder="Player Name (3-15 chars)" class="w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none">
+            <input id="player-password-input" type="password" placeholder="Password" class="w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none">
+            <button data-action="login" class="px-4 py-2 bg-amber-600 text-white font-semibold rounded-md w-full shadow-sm hover:bg-amber-700">Login / Register</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="building-modal" class="modal-backdrop hidden">
+        <div class="relative p-6 border border-yellow-600 w-11/12 max-w-4xl shadow-lg rounded-md bg-slate-800 text-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="building-modal-title" class="text-2xl font-title text-yellow-400">Building</h3>
+                <button id="close-building-modal" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div id="building-modal-content" class="space-y-4">
+                <!-- Content will be dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <div id="player-profile-modal" class="modal-backdrop hidden">
+        <div class="relative p-5 border border-yellow-600 w-96 shadow-lg rounded-md bg-slate-800 text-slate-200">
+            <div id="player-profile-content"></div>
+            <button data-action="close-modal" class="absolute top-2 right-2 text-slate-400 hover:text-white">&times;</button>
+        </div>
+    </div>
+    
+    <div id="build-modal" class="modal-backdrop hidden">
+        <div class="relative p-5 border border-yellow-600 w-full max-w-md shadow-lg rounded-md bg-slate-800 text-slate-200">
+            <h3 class="text-2xl leading-6 font-title text-yellow-400 mb-4">Construct a Building</h3>
+            <div id="build-modal-content" class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
+                <!-- Building options will be populated here -->
+            </div>
+            <button data-action="close-modal" class="absolute top-2 right-2 text-slate-400 hover:text-white">&times;</button>
+        </div>
+    </div>
+
+<script>
+// Client-side configuration for biomes
+const CONFIG = {
+    BIOMES: {
+        FOREST: {
+            name: 'Forest',
+            color: 'bg-green-600',
+            borderColor: 'border-green-700',
+            textColor: 'text-green-100',
+            description: 'Lush forests with abundant wildlife and resources.'
+        },
+        DESERT: {
+            name: 'Desert',
+            color: 'bg-yellow-500',
+            borderColor: 'border-yellow-600',
+            textColor: 'text-yellow-900',
+            description: 'Harsh deserts with scorching heat and hidden treasures.'
+        },
+        VOLCANIC: {
+            name: 'Volcanic',
+            color: 'bg-red-700',
+            borderColor: 'border-red-800',
+            textColor: 'text-red-100',
+            description: 'Dangerous volcanic regions with fire-based creatures.'
+        },
+        ARCTIC: {
+            name: 'Arctic',
+            color: 'bg-blue-300',
+            borderColor: 'border-blue-400',
+            textColor: 'text-blue-900',
+            description: 'Frozen arctic lands with ice and snow creatures.'
+        }
+    }
+};
+
+class GameClient {
+    constructor() {
+        this.ws = null;
+        this.gameState = {};
+        this.staticData = {}; // Store static data received once on login
+        this.clientState = {
+            activeTab: 'character',
+            chatChannel: 'world',
+            showMapView: false,
+        };
+        this.lastRenderedMessageCount = 0;
+        this.chatCache = { world: [], area: [], party: [], combat: [] };
+        this.dom = {
+            mainViewContent: document.getElementById('main-view-content'),
+            mainViewTitle: document.getElementById('main-view-title'),
+            characterPanel: document.getElementById('character'),
+            teamsPanel: document.getElementById('teams'),
+            adminPanel: document.getElementById('admin'),
+            tabsContainer: document.getElementById('tabs-container'),
+            modals: {
+                login: document.getElementById('login-modal'),
+                playerProfile: document.getElementById('player-profile-modal'),
+                build: document.getElementById('build-modal'),
+                itemPopup: document.getElementById('item-popup-modal'),
+            },
+            itemPopup: {
+                modal: document.getElementById('item-popup-modal'),
+                title: document.getElementById('item-popup-title'),
+                content: document.getElementById('item-popup-content'),
+                closeButton: document.getElementById('close-item-popup'),
+            },
+            playerProfileContent: document.getElementById('player-profile-content'),
+            buildModalContent: document.getElementById('build-modal-content'),
+            chat: {
+                messages: document.getElementById('chat-messages'),
+                input: document.getElementById('chat-input'),
+                channels: document.getElementById('chat-channels'),
+            },
+            connection: {
+                status: document.getElementById('connection-status'),
+                text: document.getElementById('connection-text')
+            }
+        };
+        this.renderer = new Renderer(this.dom, this.clientState, this);
+    }
+
+    connect(url) {
+        this.ws = new WebSocket(url);
+        this.ws.onopen = () => this.onOpen();
+        this.ws.onmessage = (event) => this.onMessage(event);
+        this.ws.onclose = () => this.onClose();
+        this.ws.onerror = () => this.onClose();
+    }
+
+    onOpen() {
+        this.dom.connection.status.classList.replace('disconnected', 'connected');
+        this.dom.connection.text.textContent = 'Connected';
+        this.dom.modals.login.classList.remove('hidden');
+    }
+
+    onClose() {
+        this.dom.connection.status.classList.replace('connected', 'disconnected');
+        this.dom.connection.text.textContent = 'Disconnected. Refresh to retry.';
+        this.dom.modals.login.classList.add('hidden');
+    }
+
+    onMessage(event) {
+        const payload = JSON.parse(event.data);
+        
+        switch (payload.type) {
+            case 'log': 
+                this.renderer.appendSystemMessage({ 
+                    text: payload.message, 
+                    type: 'log',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                }); 
+                break;
+            case 'combatLog': 
+                this.renderer.appendCombatMessage(payload); 
+                break;
+            case 'error': 
+                this.renderer.appendSystemMessage({ 
+                    text: `Error: ${payload.message}`, 
+                    type: 'error',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                }); 
+                break;
+            case 'chat': 
+                if (!this.chatCache[payload.message.channel]) this.chatCache[payload.message.channel] = [];
+                this.chatCache[payload.message.channel].push(payload.message);
+                console.log(`Chat message received: ${payload.message.senderName}: ${payload.message.text} in ${payload.message.channel} channel`);
+                if (this.clientState.chatChannel === payload.message.channel) this.renderer.appendChatMessage(payload.message, this.gameState);
+                break;
+            case 'loginSuccess':
+                this.renderer.appendSystemMessage({ 
+                    text: `Welcome, ${payload.player.name}!`,
+                    type: 'log',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                });
+                this.dom.modals.login.classList.add('hidden');
+                break;
+            case 'staticData':
+                console.log('Received static data:', payload.data);
+                // Store static data for use in the game
+                this.staticData = payload.data;
+                break;
+            case 'gameState':
+                console.log('Received gameState:', payload.state);
+                console.log('Player in gameState:', payload.state.player);
+                
+                // Store previous state for comparison
+                const previousState = this.gameState;
+                this.gameState = payload.state;
+
+                // --- FIX: PERSIST STATIC DATA ---
+                // Merge the biomeMap and other static data back into the gameState
+                if (this.staticData) {
+                    this.gameState.biomeMap = this.staticData.biomeMap;
+                    this.gameState.teams = this.staticData.teams;
+                    this.gameState.noobsTeamId = this.staticData.noobsTeamId;
+                    // Also persist other static data if needed by rendering functions
+                    this.gameState.enemyTemplates = this.staticData.enemyTemplates;
+                    this.gameState.buildingTemplates = this.staticData.buildingTemplates;
+                    this.gameState.craftingRecipes = this.staticData.craftingRecipes;
+                }
+                
+                // --- Chat Persistence ---
+                if (payload.state.chatMessages) {
+                    console.log(`GameState update: ${payload.state.chatMessages.length} chat messages received`);
+                    
+                    // Check if we have new messages by comparing with previous state
+                    const previousChatMessages = previousState ? previousState.chatMessages || [] : [];
+                    const hasNewMessages = payload.state.chatMessages.length > previousChatMessages.length;
+                    
+                    // Update chat cache with messages from server
+                    payload.state.chatMessages.forEach(msg => {
+                        if (!this.chatCache[msg.channel]) {
+                            this.chatCache[msg.channel] = [];
+                        }
+                        // Check if message already exists to avoid duplicates
+                        const existingMsg = this.chatCache[msg.channel].find(existing => 
+                            existing.senderId === msg.senderId && 
+                            existing.timestamp === msg.timestamp && 
+                            existing.text === msg.text
+                        );
+                        if (!existingMsg) {
+                            this.chatCache[msg.channel].push(msg);
+                        }
+                    });
+                    
+                    // Keep only the last 500 messages per channel to prevent memory issues
+                    Object.keys(this.chatCache).forEach(channel => {
+                        if (this.chatCache[channel].length > 500) {
+                            this.chatCache[channel] = this.chatCache[channel].slice(-500);
+                        }
+                    });
+                    
+                    // Store the new chat messages for next comparison
+                    this.lastChatMessageCount = payload.state.chatMessages.length;
+                }
+                
+                // Render main UI
+                this.renderer.renderAll(this.gameState);
+                
+                // Only re-render chat if there are new messages or if this is the first load
+                const hasNewMessages = payload.state.chatMessages && 
+                    (!previousState || payload.state.chatMessages.length > (previousState.chatMessages ? previousState.chatMessages.length : 0));
+                
+                // Always render chat on first load, otherwise only if there are new messages
+                if (!previousState) {
+                    this.renderer.renderFullChannel(this.chatCache[this.clientState.chatChannel], this.clientState.chatChannel, this.gameState);
+                } else if (hasNewMessages) {
+                    // Only append new messages instead of re-rendering everything
+                    const newMessages = payload.state.chatMessages.slice(previousState.chatMessages ? previousState.chatMessages.length : 0);
+                    newMessages.forEach(msg => {
+                        if (msg.channel === this.clientState.chatChannel) {
+                            this.renderer.appendChatMessage(msg, this.gameState);
+                        }
+                    });
+                }
+                
+                // --- Enhanced Storage Modal Auto-Refresh ---
+                const buildingModal = document.getElementById('building-modal');
+                if (!buildingModal.classList.contains('hidden')) {
+                    const lastBuildingIndex = this.clientState.lastBuildingIndex;
+                    const lastBuildingType = this.clientState.lastBuildingType;
+                    
+                    if (typeof lastBuildingIndex === 'number' && lastBuildingType && 
+                        (lastBuildingType === 'storage' || lastBuildingType === 'personal_storage')) {
+                        
+                        const site = this.gameState.cell.objects.find(o => 
+                            o.type === 'construction_site' && o.team === this.gameState.player.team
+                        );
+                        
+                        if (site && site.buildings && site.buildings[lastBuildingIndex]) {
+                            const building = site.buildings[lastBuildingIndex];
+                            
+                            // Only re-render if building data actually changed
+                            const buildingChanged = !previousState || 
+                                !previousState.cell || 
+                                !previousState.cell.objects ||
+                                !previousState.cell.objects.find(o => 
+                                    o.type === 'construction_site' && o.team === this.gameState.player.team
+                                )?.buildings?.[lastBuildingIndex] ||
+                                JSON.stringify(building) !== JSON.stringify(
+                                    previousState.cell.objects.find(o => 
+                                        o.type === 'construction_site' && o.team === this.gameState.player.team
+                                    )?.buildings?.[lastBuildingIndex]
+                                );
+                            
+                            if (buildingChanged) {
+                                this.renderer.renderBuildingModal(building, lastBuildingIndex, this.gameState.player, this.gameState);
+                            }
+                        } else {
+                            // Building no longer exists, close modal
+                            buildingModal.classList.add('hidden');
+                            this.clientState.lastBuildingIndex = null;
+                            this.clientState.lastBuildingType = null;
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
+    sendCommand(action, data = {}) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+        this.ws.send(JSON.stringify({ action, ...data }));
+    }
+
+    init() {
+        this.bindEvents();
+        this.connect('ws://localhost:8080');
+        this.renderer.renderAll({});
+        this.renderer.updateChatChannelButtons();
+    }
+
+    bindEvents() {
+        document.body.addEventListener('click', (e) => {
+            // Handle item name clicks for popup
+            if (e.target.classList.contains('item-name-clickable')) {
+                const itemIndex = parseInt(e.target.dataset.itemIndex, 10);
+                const itemType = e.target.dataset.itemType || 'inventory';
+                const player = this.gameState.player;
+                
+                if (player) {
+                    let item = null;
+                    if (itemType === 'inventory' && player.inventory && player.inventory[itemIndex]) {
+                        item = player.inventory[itemIndex];
+                    } else if (itemType === 'equipment') {
+                        const slots = ['hand', 'chest'];
+                        const slot = slots[itemIndex];
+                        item = player.equipment && player.equipment[slot];
+                    } else if (itemType === 'storage') {
+                        // Handle storage items
+                        const buildingIndex = parseInt(e.target.dataset.buildingIndex, 10);
+                        const storageType = e.target.dataset.storageType;
+                        const site = this.gameState.cell?.objects.find(o => o.type === 'construction_site' && o.team === player.team);
+                        if (site && site.buildings && site.buildings[buildingIndex]) {
+                            const building = site.buildings[buildingIndex];
+                            if (storageType === 'personal_storage' && building.playerInventories && building.playerInventories[player.id]) {
+                                item = building.playerInventories[player.id][itemIndex];
+                            } else if (storageType === 'storage' && building.inventory) {
+                                item = building.inventory[itemIndex];
+                            }
+                        }
+                    }
+                    
+                    if (item) {
+                        this.showItemPopup(item);
+                        return;
+                    }
+                }
+            }
+            
+            const actionHolder = e.target.closest('[data-action]');
+            if (!actionHolder) return;
+            const { action, teamId, tab, targetId, slot, itemIndex, channel, requesterId, decision, playerId, battlefieldId, position, buildingName, recipeId, storageType, buildingIndex } = actionHolder.dataset;
+            switch (action) {
+                case 'login': this.sendCommand('login', { name: document.getElementById('player-name-input').value, password: document.getElementById('player-password-input').value }); break;
+                case 'switch-tab': this.clientState.activeTab = tab; this.renderer.updateTabVisibility(); break;
+                case 'attack': this.sendCommand('attack', { targetId }); break;
+                case 'build': this.sendCommand('build'); break;
+                case 'donate': this.sendCommand('donate'); break;
+                case 'deploySiege': this.sendCommand('deploySiege'); break;
+                case 'respawn': this.sendCommand('respawn'); break;
+                case 'send-chat': this.sendChat(); break;
+                case 'switch-chat-channel': 
+                    this.clientState.chatChannel = channel; 
+                    this.lastRenderedMessageCount = 0; // Reset count when switching channels
+                    this.renderer.updateChatChannelButtons(); 
+                    this.renderer.renderFullChannel(this.chatCache[channel], channel, this.gameState); 
+                    break;
+                case 'equip-item': this.sendCommand('equip-item', { itemIndex: parseInt(itemIndex, 10) }); break;
+                case 'unequip-item': this.sendCommand('unequip-item', { slot }); break;
+                case 'use-item': this.sendCommand('use-item', { itemIndex: parseInt(itemIndex, 10) }); break;
+                case 'create-team': const teamName = document.getElementById('team-name-input').value.trim(); if (teamName) this.sendCommand('create-team', { teamName }); break;
+                case 'join-team': this.sendCommand('join-team', { teamId }); break;
+                case 'leave-team': this.sendCommand('leave-team'); break;
+                case 'request-to-join': this.sendCommand('request-to-join', { teamId }); break;
+                case 'update-team-settings': this.sendCommand('update-team-settings', { teamId, description: document.getElementById(`team-desc-input-${teamId}`).value, joinPolicy: document.querySelector(`input[name="join-policy-${teamId}"]:checked`).value }); break;
+                case 'resolve-join-request': this.sendCommand('resolve-join-request', { teamId, requesterId, decision }); break;
+                case 'enter-battlefield': this.sendCommand('enter-battlefield', { battlefieldId }); break;
+                case 'set-battlefield-position': this.sendCommand('set-battlefield-position', { position }); break;
+                case 'show-player-profile': 
+                    const allPlayers = [this.gameState.player, ...(this.gameState.cell?.players || [])];
+                    const p = allPlayers.find(pl => pl && pl.id === playerId); 
+                    if (p) { this.renderer.renderPlayerProfileModal(p, this.gameState); this.dom.modals.playerProfile.classList.remove('hidden'); } 
+                    break;
+                case 'open-build-modal': 
+                    // Ensure static data is available before rendering
+                    if (this.staticData && this.staticData.buildingTemplates) {
+                        this.gameState.buildingTemplates = this.staticData.buildingTemplates;
+                    }
+                    this.renderer.renderBuildModal(this.gameState); 
+                    this.dom.modals.build.classList.remove('hidden'); 
+                    break;
+                case 'build-building': this.sendCommand('build-building', { buildingName }); this.dom.modals.build.classList.add('hidden'); break;
+                case 'close-modal': 
+                    Object.values(this.dom.modals).forEach(m => m.classList.add('hidden'));
+                    document.getElementById('building-modal').classList.add('hidden');
+                    break;
+                case 'admin-action': this.handleAdminAction(actionHolder.dataset); break;
+                case 'admin-add-material': this.renderer.addRecipeMaterialRow(); break;
+                case 'admin-remove-material': actionHolder.closest('.material-row').remove(); break;
+                case 'admin-save-config': this.saveConfig(); break;
+                case 'open-building': 
+                    console.log('Opening building modal for index:', buildingIndex);
+                    const buildingIndexInt = parseInt(buildingIndex, 10);
+                    const site = this.gameState.cell.objects.find(o => o.type === 'construction_site' && o.team === this.gameState.player.team);
+                    console.log('Found site:', site);
+                    if (site && site.buildings && site.buildings[buildingIndexInt]) {
+                        this.clientState.lastBuildingIndex = buildingIndexInt;
+                        this.clientState.lastBuildingType = site.buildings[buildingIndexInt].type;
+                        this.renderer.renderBuildingModal(site.buildings[buildingIndexInt], buildingIndexInt, this.gameState.player, this.gameState);
+                        document.getElementById('building-modal').classList.remove('hidden');
+                    } else {
+                        console.log('Building not found or site not found');
+                    }
+                    break;
+                case 'deposit-storage': 
+                    this.sendCommand('deposit-storage', { 
+                        buildingIndex: parseInt(buildingIndex), 
+                        itemIndex: parseInt(itemIndex), 
+                        storageType, 
+                        quantity: parseInt(actionHolder.dataset.quantity) || 1
+                    }); 
+                    break;
+                case 'withdraw-storage': this.sendCommand('withdraw-storage', { buildingIndex: parseInt(buildingIndex), itemIndex: parseInt(itemIndex), storageType }); break;
+                case 'craft-item': this.sendCommand('craft-item', { buildingIndex: parseInt(buildingIndex), recipeId: parseInt(recipeId) }); break;
+                case 'toggle-map-view': 
+                    this.clientState.showMapView = !this.clientState.showMapView;
+                    if (this.clientState.showMapView) {
+                        this.renderer.renderMapView(this.gameState);
+                    } else {
+                        this.renderer.renderAreaView(this.gameState);
+                    }
+                    break;
+                case 'summon-boss': this.sendCommand('summon-boss'); break;
+                case 'enter-no-battle-zone': 
+                    this.sendCommand('enter-no-battle-zone', { 
+                        x: parseInt(actionHolder.dataset.x, 10), 
+                        y: parseInt(actionHolder.dataset.y, 10) 
+                    });
+                    break;
+                case 'move-to-tile': 
+                    const targetX = parseInt(actionHolder.dataset.x);
+                    const targetY = parseInt(actionHolder.dataset.y);
+                    const currentX = this.gameState.player?.x;
+                    const currentY = this.gameState.player?.y;
+                    
+                    // Check if target is adjacent (including diagonals)
+                    const isAdjacent = Math.abs(targetX - currentX) <= 1 && Math.abs(targetY - currentY) <= 1;
+                    
+                    if (isAdjacent && (targetX !== currentX || targetY !== currentY)) {
+                        console.log(`Moving from (${currentX}, ${currentY}) to (${targetX}, ${targetY})`);
+                        this.sendCommand('move', { x: targetX, y: targetY });
+                    } else if (!isAdjacent) {
+                        console.log(`Cannot move to (${targetX}, ${targetY}) - not adjacent to current position`);
+                    }
+                    break;
+            }
+        });
+        this.dom.chat.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.sendChat(); });
+        
+        // Building modal close button
+        document.getElementById('close-building-modal').addEventListener('click', () => {
+            document.getElementById('building-modal').classList.add('hidden');
+        });
+        
+        // Close building modal when clicking outside
+        document.getElementById('building-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'building-modal') {
+                document.getElementById('building-modal').classList.add('hidden');
+            }
+        });
+        
+        this.dom.adminPanel.addEventListener('change', (e) => { 
+            if (e.target.id === 'admin-template-select' || e.target.id === 'admin-recipe-select' || e.target.id === 'admin-building-select') {
+                this.renderer.renderAdminPanel(this.gameState);
+            }
+            if (e.target.id === 'admin-config-loader') {
+                this.loadConfig(e.target.files[0]);
+            }
+        });
+
+        // Item popup event handlers
+        this.dom.itemPopup.closeButton.addEventListener('click', () => {
+            this.closeItemPopup();
+        });
+
+        // Close item popup when clicking outside
+        this.dom.itemPopup.modal.addEventListener('click', (e) => {
+            if (e.target === this.dom.itemPopup.modal) {
+                this.closeItemPopup();
+            }
+        });
+
+        // Close item popup with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.dom.itemPopup.modal.classList.contains('hidden')) {
+                this.closeItemPopup();
+            }
+        });
+    }
+
+    handleAdminAction(dataset) {
+        const { adminCommand, templateId, dropIndex, recipeId, buildingName } = dataset;
+
+        if (adminCommand.startsWith('recipe-')) {
+            const payload = { action: 'admin', command: adminCommand, recipeId: recipeId ? parseInt(recipeId, 10) : null };
+            if (adminCommand === 'recipe-save') {
+                try {
+                    const materials = [];
+                    document.querySelectorAll('#admin-recipe-materials-list .material-row').forEach(row => {
+                        materials.push({
+                            name: row.querySelector('.material-name').value,
+                            quantity: parseInt(row.querySelector('.material-quantity').value, 10)
+                        });
+                    });
+
+                    payload.recipeData = {
+                        id: parseInt(recipeId),
+                        name: document.getElementById('admin-recipe-name').value,
+                        materials: materials,
+                        result: {
+                            name: document.getElementById('admin-result-name').value,
+                            type: document.getElementById('admin-result-type').value,
+                            slot: document.getElementById('admin-result-slot')?.value || null,
+                            stats: JSON.parse(document.getElementById('admin-result-stats').value || '{}'),
+                            level: parseInt(document.getElementById('admin-result-level').value, 10),
+                            quality: document.getElementById('admin-result-quality').value,
+                            description: document.getElementById('admin-result-description').value,
+                        }
+                    };
+                } catch (e) {
+                    console.error("Invalid JSON in recipe stats form:", e);
+                    return;
+                }
+            }
+            this.sendCommand('admin', payload);
+            return;
+        }
+
+        if (adminCommand.startsWith('building-')) {
+            const payload = { action: 'admin', command: adminCommand, buildingName };
+            if (adminCommand === 'building-save') {
+                 const recipeIds = Array.from(document.getElementById('admin-building-recipes').selectedOptions).map(opt => parseInt(opt.value));
+                 payload.recipeIds = recipeIds;
+            }
+            this.sendCommand('admin', payload);
+            return;
+        }
+
+        // Handle regenerate-map command (doesn't need templateId)
+        if (adminCommand === 'regenerate-map') {
+            const payload = { action: 'admin', command: adminCommand };
+            this.sendCommand('admin', payload);
+            return;
+        }
+
+        if (templateId === null || templateId === undefined || templateId === "") return;
+        const payload = { action: 'admin', command: adminCommand, templateId: parseInt(templateId, 10) };
+        if (adminCommand === 'update-enemy-stats') {
+            payload.stats = {
+                hp: parseFloat(document.getElementById(`admin-stat-hp-${templateId}`).value),
+                dmg: parseFloat(document.getElementById(`admin-stat-dmg-${templateId}`).value),
+                speed: parseFloat(document.getElementById(`admin-stat-speed-${templateId}`).value),
+                rarity: parseInt(document.getElementById(`admin-stat-rarity-${templateId}`).value, 10)
+            };
+        } else if (adminCommand === 'add-enemy-drop') {
+            payload.drop = {
+                name: document.getElementById(`admin-drop-name-${templateId}`).value,
+                type: document.getElementById(`admin-drop-type-${templateId}`).value,
+                chance: parseFloat(document.getElementById(`admin-drop-chance-${templateId}`).value),
+                quantity: [parseInt(document.getElementById(`admin-drop-min-qty-${templateId}`).value, 10), parseInt(document.getElementById(`admin-drop-max-qty-${templateId}`).value, 10)],
+                level: 1, quality: 'Common', description: ''
+            };
+        } else if (adminCommand === 'remove-enemy-drop') {
+            payload.dropIndex = parseInt(dropIndex, 10);
+        }
+        this.sendCommand('admin', payload);
+    }
+
+    saveConfig() {
+        if (!this.gameState) return;
+        const config = {
+            enemyTemplates: this.gameState.enemyTemplates,
+            craftingRecipes: this.gameState.craftingRecipes,
+            buildingTemplates: this.gameState.buildingTemplates
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "config.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        this.renderer.appendSystemMessage({ text: 'Configuration saved to config.json' });
+    }
+
+    loadConfig(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const config = JSON.parse(e.target.result);
+                if (config.enemyTemplates && config.craftingRecipes && config.buildingTemplates) {
+                    this.sendCommand('admin', { command: 'load-config', config: config });
+                    this.renderer.appendSystemMessage({ text: 'Configuration sent to server for loading.' });
+                } else {
+                     this.renderer.appendSystemMessage({ type: 'error', text: 'Invalid config file structure.' });
+                }
+            } catch (error) {
+                this.renderer.appendSystemMessage({ type: 'error', text: 'Failed to parse config file.' });
+                console.error("Config parse error:", error);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    sendChat() {
+        const text = this.dom.chat.input.value.trim();
+        if (text) {
+            this.sendCommand('chat', { text, channel: this.clientState.chatChannel });
+            this.dom.chat.input.value = '';
+        }
+    }
+
+    // Item popup methods
+    showItemPopup(item) {
+        if (!item) return;
+        
+        this.dom.itemPopup.title.textContent = this.renderer.getItemDisplayName(item);
+        
+        let content = '';
+        
+        // Basic item info
+        content += `<div class="mb-4">
+            <div class="text-lg font-semibold text-blue-300 mb-2">${this.renderer.getItemDisplayName(item)}</div>
+            <div class="text-sm text-slate-300">${item.description || 'No description available.'}</div>
+        </div>`;
+        
+        // Item type and rarity
+        content += `<div class="mb-4">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400">Type:</span>
+                <span class="text-yellow-400 capitalize">${item.type}</span>
+            </div>
+            ${item.quality ? `<div class="flex justify-between items-center">
+                <span class="text-slate-400">Quality:</span>
+                <span class="text-${this.getQualityColor(item.quality)}">${item.quality}</span>
+            </div>` : ''}
+            ${item.level ? `<div class="flex justify-between items-center">
+                <span class="text-slate-400">Level:</span>
+                <span class="text-blue-400">${item.level}</span>
+            </div>` : ''}
+        </div>`;
+        
+        // Equipment stats
+        if (item.type === 'equipment' && item.stats) {
+            content += `<div class="mb-4">
+                <div class="text-sm font-semibold text-yellow-400 mb-2">Stats:</div>
+                <div class="space-y-1 text-sm">
+                    ${item.stats.hp ? `<div class="flex justify-between"><span class="text-slate-400">HP:</span><span class="text-green-400">+${item.stats.hp}</span></div>` : ''}
+                    ${item.stats.mp ? `<div class="flex justify-between"><span class="text-slate-400">MP:</span><span class="text-blue-400">+${item.stats.mp}</span></div>` : ''}
+                    ${item.stats.dmg ? `<div class="flex justify-between"><span class="text-slate-400">Damage:</span><span class="text-red-400">+${item.stats.dmg}</span></div>` : ''}
+                    ${item.stats.speed ? `<div class="flex justify-between"><span class="text-slate-400">Speed:</span><span class="text-purple-400">+${item.stats.speed}</span></div>` : ''}
+                    ${item.stats.critical ? `<div class="flex justify-between"><span class="text-slate-400">Critical:</span><span class="text-orange-400">+${item.stats.critical}%</span></div>` : ''}
+                    ${item.stats.dodge ? `<div class="flex justify-between"><span class="text-slate-400">Dodge:</span><span class="text-cyan-400">+${item.stats.dodge}%</span></div>` : ''}
+                </div>
+            </div>`;
+        }
+        
+        // Equipment slot
+        if (item.type === 'equipment' && item.slot) {
+            content += `<div class="mb-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Slot:</span>
+                    <span class="text-purple-400 capitalize">${item.slot}</span>
+                </div>
+            </div>`;
+        }
+        
+        // Quantity
+        if (item.quantity && item.quantity > 1) {
+            content += `<div class="mb-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Quantity:</span>
+                    <span class="text-green-400">${item.quantity}</span>
+                </div>
+            </div>`;
+        }
+        
+        // Consumable effects
+        if (item.type === 'consumable' && item.effects) {
+            content += `<div class="mb-4">
+                <div class="text-sm font-semibold text-yellow-400 mb-2">Effects:</div>
+                <div class="text-sm text-slate-300">${item.effects}</div>
+            </div>`;
+        }
+        
+        // Scroll effects
+        if (item.type === 'scroll' && item.effects) {
+            content += `<div class="mb-4">
+                <div class="text-sm font-semibold text-yellow-400 mb-2">Scroll Effects:</div>
+                <div class="text-sm text-slate-300">${item.effects}</div>
+            </div>`;
+        }
+        
+        this.dom.itemPopup.content.innerHTML = content;
+        this.dom.itemPopup.modal.classList.remove('hidden');
+    }
+
+    closeItemPopup() {
+        this.dom.itemPopup.modal.classList.add('hidden');
+    }
+
+    getQualityColor(quality) {
+        switch (quality.toLowerCase()) {
+            case 'common': return 'gray-400';
+            case 'uncommon': return 'green-400';
+            case 'rare': return 'blue-400';
+            case 'epic': return 'purple-400';
+            case 'legendary': return 'orange-400';
+            default: return 'gray-400';
+        }
+    }
+}
+
+class Renderer {
+    constructor(dom, clientState, game) {
+        this.dom = dom;
+        this.clientState = clientState;
+        this.game = game;
+        this.itemIcons = { 'Sword': '⚔️', 'Shield': '🛡️', 'Helmet': '⛑️', 'Boots': '👢', 'Brick': '🧱', 'Health Potion': '🧪', 'Scroll': '📜' };
+        this.buildingIcons = { 'Storage': '📦', 'Personal Storage': '🧰', 'Carpentry Workshop': '🪚', 'Smithing Workshop': '⚒️', 'Brewing Workshop': '⚗️', 'Kitchen': '🍳' };
+    }
+
+    getItemDisplayName(item) {
+        let icon = '❔';
+        if (item.type === 'equipment') {
+            const iconKey = Object.keys(this.itemIcons).find(k => item.name.includes(k));
+            icon = this.itemIcons[iconKey] || '🛡️';
+        } else if (item.type === 'material') icon = '🧱';
+        else if (item.type === 'consumable') icon = '🧪';
+        else if (item.type === 'scroll') icon = '📜';
+        return `${icon} ${item.name}`;
+    }
+
+    getCraftingProgress(task) {
+        if (!task.completionTime || !task.startTime) return 0;
+        
+        const now = Date.now();
+        const elapsed = now - task.startTime;
+        const total = task.completionTime - task.startTime;
+        
+        return Math.min(Math.max(elapsed / total, 0), 1);
+    }
+
+    getCraftingRemainingTime(task) {
+        if (!task.completionTime) return 0;
+        
+        const now = Date.now();
+        return Math.max(task.completionTime - now, 0);
+    }
+
+    renderAll(gameState) {
+        if (this.clientState.showMapView) {
+            this.renderMapView(gameState);
+        } else {
+        this.renderAreaView(gameState);
+        }
+        this.renderCharacterPanel(gameState);
+        this.renderTeamsPanel(gameState);
+        this.renderAdminPanel(gameState);
+        this.updateTabVisibility();
+    }
+
+    updateTabVisibility() {
+        const player = this.game.gameState.player;
+        const adminTabButton = this.dom.tabsContainer.querySelector('[data-tab="admin"]');
+        if (player && player.isAdmin) {
+            if (!adminTabButton) {
+                const button = document.createElement('button');
+                button.dataset.action = 'switch-tab';
+                button.dataset.tab = 'admin';
+                button.className = 'tab-button flex-1 p-3 font-semibold text-yellow-400 hover:bg-slate-600';
+                button.textContent = 'Admin';
+                this.dom.tabsContainer.appendChild(button);
+            }
+        } else {
+            if (adminTabButton) adminTabButton.remove();
+        }
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('hidden', c.id !== this.clientState.activeTab));
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b.dataset.tab === this.clientState.activeTab));
+    }
+
+    renderAreaView(gameState) {
+        const grid = this.dom.mainViewContent;
+        grid.innerHTML = '';
+        const activePlayer = gameState.player;
+        const cellData = gameState.cell;
+
+        if (!activePlayer || !cellData) {
+            grid.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-8 text-slate-400">Waiting for game state...</div>`;
+            return;
+        }
+        
+        // Get biome information
+        let biomeName = 'Unknown';
+        let biomeColor = 'text-gray-400';
+        if (gameState.biomeMap) {
+            const biomeKey = gameState.biomeMap[`${cellData.x},${cellData.y}`];
+            const biome = CONFIG.BIOMES[biomeKey];
+            if (biome) {
+                biomeName = biome.name;
+                biomeColor = biome.textColor;
+            }
+        }
+        
+        this.dom.mainViewTitle.innerHTML = `🗺️ Area View (${cellData.x}, ${cellData.y}) - <span class="${biomeColor}">${biomeName}</span>`;
+
+        grid.className = 'area-container flex-1 bg-slate-800/50 p-4 rounded-lg shadow-inner flex flex-col gap-4 items-start content-start overflow-y-auto custom-scrollbar';
+        const site = cellData.objects.find(o => o.type === 'construction_site');
+        const mobs = cellData.objects.filter(o => o.type === 'mob');
+        const siegeMachines = cellData.objects.filter(o => o.type === 'siege');
+        
+        grid.appendChild(this.createBattlefieldCard(cellData, activePlayer, gameState));
+        
+        // Add no-battle zone card
+        if (cellData.noBattleZone) {
+            const noBattleZoneCard = this.createNoBattleZoneCard(cellData, activePlayer, gameState);
+            grid.appendChild(noBattleZoneCard);
+        }
+        
+        if (site) {
+            const siteTeam = gameState.teams[site.team];
+            const siteCard = document.createElement('div');
+            siteCard.className = 'w-full';
+            const teamColorName = siteTeam ? siteTeam.color.split('-')[0] : 'gray';
+            const teamBorder = siteTeam ? `border-${siteTeam.color}` : 'border-gray-500';
+            let siteActionsHtml = '';
+            if (site.team === activePlayer.team) siteActionsHtml = `<button data-action="donate" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 shadow-md transition-colors w-full sm:w-auto">Donate Bricks</button>`;
+            else if (activePlayer.team) siteActionsHtml = `<button data-action="deploySiege" class="bg-red-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-800 shadow-md transition-colors w-full sm:w-auto">Deploy Siege Machine</button>`;
+            let upgradeHtml = '';
+            const completeUntil = site.constructionCompleteUntil || 0;
+            if (completeUntil > Date.now()) {
+                const remainingS = Math.max(0, Math.ceil((completeUntil - Date.now()) / 1000));
+                upgradeHtml = `<div class="text-xs text-amber-300 italic mt-2">Upgrading... (${remainingS}s remaining)</div>`;
+            }
+            let buildingsHtml = '';
+            if (site.buildings && site.buildings.length > 0) {
+                 buildingsHtml += '<div class="mt-3 pt-3 border-t border-slate-700"><h5 class="font-semibold text-yellow-400 text-sm mb-2">Buildings:</h5><div class="flex flex-wrap gap-2">';
+                 site.buildings.forEach((b, index) => {
+                       buildingsHtml += this.renderBuildingCard(b, index, activePlayer, gameState);
+                 });
+                 buildingsHtml += '</div></div>';
+            }
+             if (site.team === activePlayer.team) {
+                  buildingsHtml += `<button data-action="open-build-modal" class="mt-2 w-full bg-amber-600 text-white font-semibold py-1 rounded hover:bg-amber-700 text-sm">Construct Building</button>`;
+             }
+            let siegeMachinesHtml = '';
+            if (siegeMachines.length > 0) {
+                siegeMachinesHtml += '<div class="mt-3 pt-3 border-t border-slate-700"><h5 class="font-semibold text-yellow-400 text-sm mb-2">Deployed Siege Engines:</h5><div class="grid grid-cols-10 gap-2">';
+                siegeMachines.forEach(machine => {
+                    const machineTeamColor = gameState.teams[machine.team] ? `text-${gameState.teams[machine.team].color.split('-')[0]}-400` : 'text-gray-400';
+                    const safeHp = machine.stats?.hp || 0;
+                    const safeMaxHp = machine.stats?.maxHp || 1;
+                    siegeMachinesHtml += `<div class="bg-slate-800/60 p-2 rounded-md" title="${machine.id}"><div class="flex justify-between items-center text-xs"><span class="font-bold ${machineTeamColor}">💣</span><span class="text-slate-300">${safeHp.toFixed(0)}</span></div>${this.createBar(safeHp, safeMaxHp, 'hp').outerHTML}</div>`;
+                });
+                siegeMachinesHtml += '</div></div>';
+            }
+            const safeSiteHp = site.stats?.hp || 0;
+            const safeSiteMaxHp = site.stats?.maxHp || 1;
+            siteCard.innerHTML = `<div class="bg-slate-900/50 p-4 rounded-lg border ${teamBorder} flex flex-col sm:flex-row items-start gap-4"><div class="flex-1 w-full"><h4 class="font-bold text-lg text-${teamColorName}-400">🏰 ${site.id} (Lvl ${site.level})</h4><div class="text-sm">HP: ${safeSiteHp.toFixed(0)} / ${safeSiteMaxHp.toFixed(0)}</div>${this.createBar(safeSiteHp, safeSiteMaxHp, 'hp').outerHTML}<div class="text-sm mt-2">Bricks: ${site.materials.bricks} / ${site.requiredMaterials.bricks}</div>${this.createBar(site.materials.bricks, site.requiredMaterials.bricks, 'brick').outerHTML}${upgradeHtml}${buildingsHtml}${siegeMachinesHtml}</div><div class="flex-shrink-0 mt-2 sm:mt-0">${siteActionsHtml}</div></div>`;
+            grid.appendChild(siteCard);
+        } else if (activePlayer.team && activePlayer.team !== gameState.noobsTeamId) {
+            const buildCard = document.createElement('div');
+            buildCard.className = 'w-full';
+            buildCard.innerHTML = `<div class="bg-slate-900/50 p-4 rounded-lg border border-slate-600 flex items-center justify-center"><button data-action="build" class="bg-amber-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-amber-700 shadow-md transition-colors">Build Construction Site</button></div>`;
+            grid.appendChild(buildCard);
+        }
+        if (mobs.length > 0) {
+            const mobsContainer = document.createElement('div');
+            mobsContainer.className = 'w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4';
+            mobs.forEach((entity) => {
+                const card = document.createElement('div');
+                card.className = 'enemy-card h-48 flex flex-col';
+                card.dataset.entityId = entity.id;
+                const isAttackingThis = activePlayer.attacking === entity.id;
+                const attackRing = isAttackingThis ? `ring-4 ring-offset-2 ring-offset-slate-800 ring-red-500` : '';
+                const respawnUntil = entity.respawnUntil || 0;
+                const isRespawning = respawnUntil > Date.now();
+                let attackersHtml = this.renderAttackersGrid(entity, gameState);
+                let respawnHtml = '';
+                if (isRespawning) respawnHtml = `<div class="absolute inset-0 bg-black/70 flex items-center justify-center rounded-lg text-amber-400 font-bold text-lg">Respawning in ${Math.max(0, Math.ceil((respawnUntil - Date.now()) / 1000))}s</div>`;
+                let cooldownText = '';
+                if (entity.nextAttackTime && entity.stats?.dmg > 0) {
+                    const timeUntilAttack = Math.max(0, entity.nextAttackTime - Date.now());
+                    if (timeUntilAttack > 0) {
+                        cooldownText = ` <span class="text-xs text-orange-400">(${(timeUntilAttack / 1000).toFixed(1)}s)</span>`;
+                    }
+                }
+                const bossText = entity.isBoss ? ' (BOSS)' : '';
+                const bossClass = entity.isBoss ? 'text-red-400' : 'text-yellow-400';
+                const currentHp = entity.stats.hp || 0;
+                const maxHp = entity.stats.maxHp || entity.stats.hp || 1;
+                card.innerHTML = `<div class="relative bg-slate-900/50 border border-yellow-700 rounded-lg p-2 flex flex-col justify-between transition-all ${!isRespawning ? 'hover:shadow-xl hover:bg-slate-800/70 cursor-pointer' : ''} ${attackRing} h-full" data-action="attack" data-target-id="${entity.id}"><div><div class="font-bold text-center ${bossClass} text-sm">${entity.id}${bossText}${cooldownText} (Lvl ${entity.level || 1})</div><div class="text-xs text-center text-slate-300">HP: ${currentHp.toFixed(0)}/${maxHp.toFixed(0)}</div>${this.createBar(currentHp, maxHp, 'hp').outerHTML}</div><div class="overflow-y-auto custom-scrollbar pr-1 mt-1 flex-1 min-h-0">${attackersHtml}</div>${respawnHtml}</div>`;
+                mobsContainer.appendChild(card);
+            });
+            grid.appendChild(mobsContainer);
+        }
+        const canBuild = activePlayer.team && activePlayer.team !== gameState.noobsTeamId;
+        if (!site && mobs.length === 0 && !canBuild) {
+            const peacefulDiv = document.createElement('div');
+            peacefulDiv.className = 'w-full h-full flex items-center justify-center text-center p-8 text-slate-400';
+            peacefulDiv.textContent = 'This area is peaceful.';
+            grid.appendChild(peacefulDiv);
+        }
+    }
+
+    renderBuildingCard(building, index, player, gameState) {
+        let preview = '';
+        let itemCount = 0;
+        
+        switch (building.type) {
+            case 'storage':
+                // Basic preview for team storage
+                if (building.inventory && building.inventory.length > 0) {
+                    itemCount = building.inventory.reduce((total, item) => total + (item.quantity || 1), 0);
+                    preview = `<div class="mt-1 text-xs text-slate-300">${itemCount} items stored</div>`;
+                } else {
+                    preview = `<div class="mt-1 text-xs text-slate-400">Empty</div>`;
+                }
+                break;
+            case 'personal_storage':
+                // Basic preview for personal storage
+                const playerStorage = building.playerInventories && building.playerInventories[player.id];
+                if (playerStorage && playerStorage.length > 0) {
+                    itemCount = playerStorage.reduce((total, item) => total + (item.quantity || 1), 0);
+                    preview = `<div class="mt-1 text-xs text-slate-300">${itemCount} items stored</div>`;
+                } else {
+                    preview = `<div class="mt-1 text-xs text-slate-400">Empty</div>`;
+                }
+                break;
+            case 'crafting':
+                // Basic preview for crafting
+                const queueCount = building.craftingQueue ? building.craftingQueue.length : 0;
+                if (queueCount > 0) {
+                    const currentTask = building.craftingQueue[0];
+                    const progress = this.getCraftingProgress(currentTask);
+                    const remainingTime = this.getCraftingRemainingTime(currentTask);
+                    const progressBar = `<div class="w-full bg-slate-700 rounded-full h-1 mb-1">
+                        <div class="bg-green-500 h-1 rounded-full" style="width: ${progress * 100}%"></div>
+                    </div>`;
+                    const timeText = remainingTime > 0 ? `${Math.ceil(remainingTime / 1000)}s` : 'Completing...';
+                    preview = `<div class="mt-1 text-xs">
+                        ${progressBar}
+                        <div class="text-slate-300">${queueCount} task${queueCount > 1 ? 's' : ''} in queue - ${timeText}</div>
+                    </div>`;
+                } else {
+                    preview = `<div class="mt-1 text-xs text-slate-400">Idle</div>`;
+                }
+                break;
+        }
+        
+        return `<div class="bg-slate-800/60 p-2 rounded-md flex-grow cursor-pointer hover:bg-slate-700/60 transition-colors" 
+                    data-action="open-building" 
+                    data-building-index="${index}" 
+                    title="Click to open ${building.name}">
+                    <span class="text-xl">${this.buildingIcons[building.name] || '🏛️'}</span>
+                    <div class="text-xs">${building.name} (L${building.level})</div>
+                    ${preview}
+                </div>`;
+    }
+
+    renderBuildingModal(building, buildingIndex, player, gameState) {
+        const modalTitle = document.getElementById('building-modal-title');
+        const modalContent = document.getElementById('building-modal-content');
+        
+        modalTitle.innerHTML = `${this.buildingIcons[building.name] || '🏛️'} ${building.name} (Level ${building.level})`;
+        
+        let content = '';
+        
+        switch (building.type) {
+            case 'storage':
+                content = this.renderStorageModal(building, buildingIndex, player, gameState, 'Team Storage');
+                break;
+            case 'personal_storage':
+                content = this.renderStorageModal(building, buildingIndex, player, gameState, 'Personal Storage');
+                break;
+            case 'crafting':
+                content = this.renderCraftingModal(building, buildingIndex, player, gameState);
+                break;
+            default:
+                content = `<div class="text-slate-400">No detailed view available for this building type.</div>`;
+        }
+        
+        modalContent.innerHTML = content;
+    }
+
+    renderStorageModal(building, buildingIndex, player, gameState, storageType) {
+        let items = [];
+        let isPersonal = storageType === 'Personal Storage';
+        
+        if (isPersonal) {
+            items = building.playerInventories && building.playerInventories[player.id] ? building.playerInventories[player.id] : [];
+        } else {
+            items = building.inventory || [];
+        }
+        
+        let storedItemsHtml = '';
+        if (items.length > 0) {
+            storedItemsHtml = items.map((item, itemIndex) => {
+                const itemDisplay = this.getItemDisplayName(item);
+                const quantityText = item.quantity ? ` (x${item.quantity})` : '';
+                return `<div class="flex justify-between items-center p-3 bg-slate-700/50 rounded-md border border-slate-600">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg item-name-clickable cursor-pointer hover:text-blue-300 transition-colors" data-item-index="${itemIndex}" data-item-type="storage" data-storage-type="${isPersonal ? 'personal_storage' : 'storage'}" data-building-index="${buildingIndex}">${itemDisplay}</span>
+                        <span class="text-slate-400">${quantityText}</span>
+                    </div>
+                    <button data-action="withdraw-storage" 
+                            data-building-index="${buildingIndex}" 
+                            data-item-index="${itemIndex}" 
+                            data-storage-type="${isPersonal ? 'personal_storage' : 'storage'}" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+                        Withdraw
+                    </button>
+                </div>`;
+            }).join('');
+        } else {
+            storedItemsHtml = `<div class="text-center text-slate-400 py-8">No items stored</div>`;
+        }
+
+        // Player inventory for depositing
+        let playerInventoryHtml = '';
+        if (player.inventory && player.inventory.length > 0) {
+            playerInventoryHtml = player.inventory.map((item, itemIndex) => {
+                const itemDisplay = this.getItemDisplayName(item);
+                const quantityText = item.quantity ? ` (x${item.quantity})` : '';
+                const maxQuantity = item.quantity || 1;
+                
+                let depositButtons = '';
+                if (maxQuantity === 1) {
+                    depositButtons = `<button data-action="deposit-storage" 
+                            data-building-index="${buildingIndex}" 
+                            data-item-index="${itemIndex}" 
+                            data-storage-type="${isPersonal ? 'personal_storage' : 'storage'}" 
+                            data-quantity="1"
+                            class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm">
+                        Deposit
+                    </button>`;
+                } else {
+                    depositButtons = `<div class="flex gap-1">
+                        <button data-action="deposit-storage" 
+                                data-building-index="${buildingIndex}" 
+                                data-item-index="${itemIndex}" 
+                                data-storage-type="${isPersonal ? 'personal_storage' : 'storage'}" 
+                                data-quantity="1"
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs">
+                            1
+                        </button>
+                        <button data-action="deposit-storage" 
+                                data-building-index="${buildingIndex}" 
+                                data-item-index="${itemIndex}" 
+                                data-storage-type="${isPersonal ? 'personal_storage' : 'storage'}" 
+                                data-quantity="5"
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs">
+                            5
+                        </button>
+                        <button data-action="deposit-storage" 
+                                data-building-index="${buildingIndex}" 
+                                data-item-index="${itemIndex}" 
+                                data-storage-type="${isPersonal ? 'personal_storage' : 'storage'}" 
+                                data-quantity="${maxQuantity}"
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs">
+                            All
+                        </button>
+                    </div>`;
+                }
+                
+                return `<div class="flex justify-between items-center p-3 bg-slate-700/50 rounded-md border border-slate-600">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg item-name-clickable cursor-pointer hover:text-blue-300 transition-colors" data-item-index="${itemIndex}" data-item-type="inventory">${itemDisplay}</span>
+                        <span class="text-slate-400">${quantityText}</span>
+                    </div>
+                    ${depositButtons}
+                </div>`;
+            }).join('');
+        } else {
+            playerInventoryHtml = `<div class="text-center text-slate-400 py-8">Your inventory is empty</div>`;
+        }
+        
+        return `
+            <div class="space-y-6">
+                <div class="bg-slate-700/30 p-4 rounded-md border border-slate-600">
+                    <h4 class="text-lg font-semibold text-yellow-400 mb-2">${storageType}</h4>
+                    <p class="text-slate-300 text-sm">${isPersonal ? 'Your personal storage space. Only you can access these items.' : 'Team storage space. All team members can access these items.'}</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <h5 class="text-lg font-semibold text-white">Your Inventory - Deposit Items</h5>
+                    <div class="max-h-64 overflow-y-auto space-y-2">
+                        ${playerInventoryHtml}
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <h5 class="text-lg font-semibold text-white">Stored Items (${items.length})</h5>
+                    <div class="max-h-64 overflow-y-auto space-y-2">
+                        ${storedItemsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderCraftingModal(building, buildingIndex, player, gameState) {
+        const availableRecipes = gameState.craftingRecipes.filter(recipe => 
+            building.recipeIds && building.recipeIds.includes(recipe.id)
+        );
+        
+        let queueHtml = '';
+        if (building.craftingQueue && building.craftingQueue.length > 0) {
+            queueHtml = building.craftingQueue.map((task, queueIndex) => {
+                const progress = this.getCraftingProgress(task);
+                const remainingTime = this.getCraftingRemainingTime(task);
+                const progressBar = `<div class="w-full bg-slate-700 rounded-full h-2 mb-2">
+                    <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${progress * 100}%"></div>
+                </div>`;
+                const status = task.completed ? 'Completed' : `${Math.ceil(remainingTime / 1000)}s remaining`;
+                const statusClass = task.completed ? 'text-green-400' : 'text-yellow-400';
+                
+                return `<div class="bg-slate-700/50 p-3 rounded-md border border-slate-600">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-white">${task.recipeName}</span>
+                        <span class="text-sm text-slate-400">by ${task.playerName}</span>
+                    </div>
+                    ${progressBar}
+                    <div class="text-sm ${statusClass}">${status}</div>
+                </div>`;
+            }).join('');
+        } else {
+            queueHtml = `<div class="text-center text-slate-400 py-4">No tasks in queue</div>`;
+        }
+        
+        let recipesHtml = '';
+        if (availableRecipes.length > 0) {
+            recipesHtml = availableRecipes.map(recipe => {
+                const canCraft = recipe.materials.every(material => {
+                    const playerItem = player.inventory.find(item => item.name === material.name);
+                    return playerItem && playerItem.quantity >= material.quantity;
+                });
+                const buttonClass = canCraft ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-500 cursor-not-allowed';
+                const buttonDisabled = canCraft ? '' : 'disabled';
+                const materialsText = recipe.materials.map(m => `${m.quantity}x ${m.name}`).join(', ');
+                const timeText = `${Math.ceil(recipe.craftingTime / 1000)}s`;
+                
+                return `<div class="bg-slate-700/50 p-3 rounded-md border border-slate-600">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-white">${recipe.name}</span>
+                        <span class="text-sm text-slate-400">${timeText}</span>
+                    </div>
+                    <div class="text-sm text-slate-300 mb-3">Materials: ${materialsText}</div>
+                    <button data-action="craft-item" 
+                            data-building-index="${buildingIndex}" 
+                            data-recipe-id="${recipe.id}" 
+                            ${buttonDisabled} 
+                            class="w-full text-sm text-white px-3 py-2 rounded ${buttonClass} transition-colors">
+                        ${canCraft ? 'Start Crafting' : 'Missing Materials'}
+                    </button>
+                </div>`;
+            }).join('');
+        }
+        
+        return `
+            <div class="space-y-6">
+                <div class="bg-slate-700/30 p-4 rounded-md border border-slate-600">
+                    <h4 class="text-lg font-semibold text-yellow-400 mb-2">Crafting Workshop</h4>
+                    <p class="text-slate-300 text-sm">Craft items using materials from your inventory. Only one task can be processed at a time.</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <h5 class="text-lg font-semibold text-white">Crafting Queue (${building.craftingQueue ? building.craftingQueue.length : 0})</h5>
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                        ${queueHtml}
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <h5 class="text-lg font-semibold text-white">Available Recipes (${availableRecipes.length})</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${recipesHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createBattlefieldCard(cellData, activePlayer, gameState) {
+        const card = document.createElement('div');
+        card.className = 'w-full';
+
+        // Always ensure we have at least 4 battlefields available
+        const existingBattlefields = cellData.battlefields || [];
+        const battlefieldCount = Math.max(4, existingBattlefields.length);
+        
+        let battlefieldsHtml = '';
+        
+        for (let index = 0; index < battlefieldCount; index++) {
+            const bf = existingBattlefields[index];
+            
+            if (bf) {
+                // Existing battlefield
+                const playersOnThisBf = bf.players.map(pid => {
+                    if (pid === activePlayer.id) return activePlayer;
+                    return cellData.players.find(p => p.id === pid);
+                }).filter(Boolean);
+
+                const isPlayerHere = bf.id === activePlayer.currentBattlefield;
+                
+                const playersByTeam = playersOnThisBf.reduce((acc, p) => {
+                    if (!acc[p.team]) acc[p.team] = [];
+                    acc[p.team].push(p);
+                    return acc;
+                }, {});
+
+                const teammatesOnBf = playersOnThisBf.filter(p => p.team === activePlayer.team);
+                const teammatesInFront = teammatesOnBf.some(p => p.battlefieldPosition === 'front' && p.id !== activePlayer.id);
+
+                let teamsHtml = Object.entries(playersByTeam).map(([teamId, teamPlayers]) => {
+                    const team = gameState.teams[teamId];
+                    if (!team) return '';
+                    const teamColorClass = `bg-${team.color}`;
+                    const frontPlayers = teamPlayers.filter(p => p.battlefieldPosition === 'front');
+                    const backPlayers = teamPlayers.filter(p => p.battlefieldPosition === 'back');
+                    
+                    const canPlayerAttack = isPlayerHere && (activePlayer.battlefieldPosition === 'front' || (activePlayer.battlefieldPosition === 'back' && !teammatesInFront));
+
+                    const renderPlayerList = (players) => players.map(p => {
+                        const isAttackingThis = activePlayer.attackingPlayer === p.id;
+                        const ringClass = isAttackingThis ? 'ring-1 ring-red-500 rounded-md px-1' : '';
+                        let attackBtn = '';
+                        if (canPlayerAttack && p.team !== activePlayer.team) {
+                            attackBtn = `<button data-action="attack" data-target-id="${p.id}" class="ml-1 text-red-500 hover:text-red-300">[⚔️]</button>`;
+                        }
+                        return `<span class="${ringClass}">${p.name}${attackBtn}</span>`;
+                    }).join(', ');
+
+                    let frontHtml = frontPlayers.length > 0 ? `<div class="text-xs text-slate-300 pl-5">${renderPlayerList(frontPlayers)}</div>` : '';
+                    let backHtml = backPlayers.length > 0 ? `<div class="text-xs text-slate-400 pl-5">${renderPlayerList(backPlayers)}</div>` : '';
+                    let separator = frontPlayers.length > 0 && backPlayers.length > 0 ? '<hr class="border-slate-700 my-1 mx-4">' : '';
+
+                    return `<div class="mb-1"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full ${teamColorClass}"></div><span class="font-semibold text-xs text-slate-300">${team.name} (${teamPlayers.length})</span></div>${frontHtml}${separator}${backHtml}</div>`;
+                }).join('');
+                
+                let buttonHtml = '';
+                if (isPlayerHere) {
+                    const nextPos = activePlayer.battlefieldPosition === 'front' ? 'back' : 'front';
+                    buttonHtml = `<button data-action="set-battlefield-position" data-position="${nextPos}" class="w-full mt-2 bg-yellow-600 text-slate-900 font-bold py-2 px-4 rounded-lg hover:bg-yellow-700">Move to ${nextPos.charAt(0).toUpperCase() + nextPos.slice(1)}</button>`;
+                } else {
+                    buttonHtml = `<button data-action="enter-battlefield" data-battlefield-id="${bf.id}" class="w-full mt-2 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 shadow-md transition-colors">Enter</button>`;
+                }
+
+                battlefieldsHtml += `<div class="bg-slate-800/50 p-3 rounded-lg border ${isPlayerHere ? 'border-yellow-500' : 'border-red-700'} flex flex-col justify-between"><div><h5 class="font-bold text-center text-red-300 mb-2">Battlefield ${index + 1}</h5><div class="min-h-[60px]">${teamsHtml || '<span class="text-xs text-slate-500 italic flex items-center justify-center h-full">Empty</span>'}</div></div>${buttonHtml}</div>`;
+            } else {
+                // Create a placeholder battlefield that can be entered
+                const battlefieldId = `battlefield_${cellData.x}_${cellData.y}_${index}`;
+                const isPlayerHere = battlefieldId === activePlayer.currentBattlefield;
+                
+                let buttonHtml = '';
+                if (isPlayerHere) {
+                    const nextPos = activePlayer.battlefieldPosition === 'front' ? 'back' : 'front';
+                    buttonHtml = `<button data-action="set-battlefield-position" data-position="${nextPos}" class="w-full mt-2 bg-yellow-600 text-slate-900 font-bold py-2 px-4 rounded-lg hover:bg-yellow-700">Move to ${nextPos.charAt(0).toUpperCase() + nextPos.slice(1)}</button>`;
+                } else {
+                    buttonHtml = `<button data-action="enter-battlefield" data-battlefield-id="${battlefieldId}" class="w-full mt-2 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 shadow-md transition-colors">Enter</button>`;
+                }
+
+                battlefieldsHtml += `<div class="bg-slate-800/50 p-3 rounded-lg border ${isPlayerHere ? 'border-yellow-500' : 'border-gray-600'} flex flex-col justify-between"><div><h5 class="font-bold text-center text-gray-400 mb-2">Battlefield ${index + 1}</h5><div class="min-h-[60px]"><span class="text-xs text-slate-500 italic flex items-center justify-center h-full">Available for PvP</span></div></div>${buttonHtml}</div>`;
+            }
+        }
+
+        card.innerHTML = `<div class="bg-slate-900/50 p-4 rounded-lg border border-red-700"><h4 class="font-bold text-lg text-red-400 mb-3 text-center">⚔️ Battlefields ⚔️</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">${battlefieldsHtml}</div></div>`;
+        return card;
+    }
+
+    createNoBattleZoneCard(cellData, activePlayer, gameState) {
+        const card = document.createElement('div');
+        card.className = 'w-full';
+        
+        const noBattleZone = cellData.noBattleZone;
+        const isPlayerInNoBattleZone = activePlayer.inNoBattleZone;
+        
+        const playersInNoBattleZone = noBattleZone.players.map(pid => {
+            if (pid === activePlayer.id) return activePlayer;
+            return cellData.players.find(p => p.id === pid);
+        }).filter(Boolean);
+        
+        const playersByTeam = playersInNoBattleZone.reduce((acc, p) => {
+            if (!acc[p.team]) acc[p.team] = [];
+            acc[p.team].push(p);
+            return acc;
+        }, {});
+        
+        let teamsHtml = Object.entries(playersByTeam).map(([teamId, teamPlayers]) => {
+            const team = gameState.teams[teamId];
+            if (!team) return '';
+            const teamColorClass = `bg-${team.color}`;
+            return `<div class="mb-1"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full ${teamColorClass}"></div><span class="font-semibold text-xs text-slate-300">${team.name} (${teamPlayers.length})</span></div><div class="text-xs text-slate-400 pl-5">${teamPlayers.map(p => `<span data-action="examine-player" data-target-id="${p.id}" class="cursor-pointer hover:underline hover:text-blue-300">${p.name}</span>`).join(', ')}</div></div>`;
+        }).join('');
+        
+        let buttonHtml = '';
+        if (isPlayerInNoBattleZone) {
+            buttonHtml = `<button class="w-full mt-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg cursor-default">🛡️ Safe Zone</button>`;
+        } else {
+            buttonHtml = `<button data-action="enter-no-battle-zone" data-x="${cellData.x}" data-y="${cellData.y}" class="w-full mt-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 shadow-md transition-colors">🛡️ Enter Safe Zone</button>`;
+        }
+        
+        card.innerHTML = `<div class="bg-slate-900/50 p-4 rounded-lg border ${isPlayerInNoBattleZone ? 'border-green-500' : 'border-green-700'}"><h4 class="font-bold text-lg text-green-400 mb-3 text-center">🛡️ Safe Zone</h4><div class="min-h-[60px] mb-4">${teamsHtml || '<span class="text-xs text-slate-500 italic flex items-center justify-center h-full">No players in safe zone</span>'}</div>${buttonHtml}</div>`;
+        return card;
+    }
+
+    renderAttackersGrid(entity, gameState) {
+        if (!entity.attackers || entity.attackers.length === 0) return '';
+        let html = '<div class="mt-1 border-t border-slate-600 pt-1"><div class="text-xs text-slate-400 mb-1">Attackers:</div><div class="space-y-1">';
+        const allPlayersInCell = [gameState.player, ...(gameState.cell?.players || [])];
+        entity.attackers.forEach(attackerId => {
+            const attacker = allPlayersInCell.find(p => p && p.id === attackerId);
+            if (attacker && attacker.stats && attacker.stats.hp !== null && attacker.stats.hp !== undefined) {
+                const teamColorClass = (attacker.team && gameState.teams[attacker.team]) ? `text-${gameState.teams[attacker.team].color.split('-')[0]}-400` : 'text-gray-400';
+                const safeHp = attacker.stats.hp || 0;
+                html += `<div class="flex justify-between items-center text-xs"><span data-action="show-player-profile" data-player-id="${attacker.id}" class="font-semibold cursor-pointer hover:underline ${teamColorClass}">${attacker.name}</span><span class="text-slate-300">${safeHp.toFixed(0)} HP</span></div>`;
+            }
+        });
+        return html + '</div></div>';
+    }
+    
+    renderTeamsPanel(gameState) {
+        const player = gameState.player;
+        if (!player) { this.dom.teamsPanel.innerHTML = ''; return; }
+
+        // If player is not in a team OR is in the noobs team, show the create/join UI
+        if (!player.team || (gameState.noobsTeamId && player.team === gameState.noobsTeamId)) {
+            let currentTeamHtml = '';
+            if (player.team && gameState.noobsTeamId && player.team === gameState.noobsTeamId) {
+                const noobsTeam = gameState.teams[gameState.noobsTeamId];
+                if (noobsTeam) {
+                    const allPlayersInCell = [gameState.player, ...(gameState.cell?.players || [])];
+                    const membersList = noobsTeam.members.map(pid => {
+                        const member = allPlayersInCell.find(p => p && p.id === pid);
+                        let name = `ID: ...${pid.slice(-4)}`;
+                        if(member) {
+                            name = member.name;
+                        } else {
+                            name = `${name} (Offline)`;
+                        }
+                        return `<span data-action="show-player-profile" data-player-id="${pid}" class="bg-slate-800 px-2 py-1 text-xs rounded-full cursor-pointer hover:underline">${name}</span>`
+                    }).join(' ');
+                    currentTeamHtml = `<div class="mb-6 p-3 rounded-md bg-slate-800/50 border border-${noobsTeam.color}"><div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-6 h-6 rounded-full bg-${noobsTeam.color}"></div><span class="font-semibold text-xl font-title text-white">${noobsTeam.name}</span></div><span class="text-xs text-slate-400">(Default Team)</span></div><p class="text-sm text-slate-400 mt-3 italic">${noobsTeam.description || 'No description.'}</p><div class="mt-3 pt-3 border-t border-slate-700 text-slate-400 text-sm">Members (${noobsTeam.members.length}): <div class="flex flex-wrap gap-1 mt-1">${membersList || 'None'}</div></div></div>`;
+                }
+            }
+            
+            let createHtml = `<div class="mb-6"><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Found a New Team</h3><div class="flex gap-2 mt-2"><input id="team-name-input" type="text" class="flex-1 bg-slate-900 border border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none" placeholder="Enter Team Name (3-15 chars)"><button data-action="create-team" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700">Create</button></div></div>`;
+            let listHtml = `<h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Join an Existing Team</h3>`;
+            const teams = Object.values(gameState.teams || {}).filter(t => !t.isDefault);
+            if (teams.length > 0) {
+                listHtml += `<div class="space-y-3 mt-2">`;
+                teams.forEach(team => {
+                    const hasRequested = team.requests.includes(player.id);
+                    let joinButtonHtml = '';
+                    if (team.joinPolicy === 'open') joinButtonHtml = `<button data-action="join-team" data-team-id="${team.id}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1 rounded-md text-sm">Join</button>`;
+                    else joinButtonHtml = hasRequested ? `<button class="bg-gray-500 cursor-not-allowed text-white font-semibold px-4 py-1 rounded-md text-sm" disabled>Request Sent</button>` : `<button data-action="request-to-join" data-team-id="${team.id}" class="bg-yellow-600 hover:bg-yellow-700 text-slate-900 font-semibold px-4 py-1 rounded-md text-sm">Request to Join</button>`;
+                    listHtml += `<div class="p-3 rounded-md bg-slate-800/50 border border-${team.color}"><div class="flex justify-between items-center"><div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-${team.color}"></div><span class="font-semibold text-lg text-white">${team.name}</span></div>${joinButtonHtml}</div><p class="text-sm text-slate-400 mt-2 italic">${team.description || 'No description.'}</p></div>`;
+                });
+                listHtml += `</div>`;
+            } else {
+                listHtml += '<p class="text-slate-400 italic mt-2">No other teams have been formed yet. Be the first!</p>';
+            }
+             this.dom.teamsPanel.innerHTML = `<h2 class="text-3xl font-title text-yellow-400 mb-4">🛡️ Teams</h2>${currentTeamHtml}${createHtml}<div class="max-h-[30rem] overflow-y-auto custom-scrollbar pr-2">${listHtml}</div>`;
+        } 
+        else {
+            const team = gameState.teams[player.team];
+            if (!team) { this.dom.teamsPanel.innerHTML = `<p class="text-red-400">Error: Your team data could not be found.</p>`; return; }
+            const isAdmin = team.adminId === player.id;
+            const allPlayersInCell = [gameState.player, ...(gameState.cell?.players || [])];
+            const membersList = team.members.map(pid => {
+                const member = allPlayersInCell.find(p => p && p.id === pid);
+                let name = `ID: ...${pid.slice(-4)}`;
+                if(member) {
+                    name = pid === team.adminId ? `👑 ${member.name}` : member.name;
+                } else if (pid === team.adminId) {
+                    name = `👑 ${name} (Offline)`;
+                } else {
+                    name = `${name} (Offline)`;
+                }
+                return `<span data-action="show-player-profile" data-player-id="${pid}" class="bg-slate-800 px-2 py-1 text-xs rounded-full cursor-pointer hover:underline">${name}</span>`
+            }).join(' ');
+            let adminControlsHtml = '';
+            if (isAdmin) {
+                const requestsHtml = team.requests.map(reqId => {
+                    // Note: Requester might not be in the current cell, so we can't get their name reliably.
+                    const requesterName = `User ...${reqId.slice(-4)}`;
+                    return `<div class="flex items-center justify-between bg-slate-900/50 p-2 rounded-md"><span class="text-sm">${requesterName}</span><div><button data-action="resolve-join-request" data-team-id="${team.id}" data-requester-id="${reqId}" data-decision="accept" class="bg-green-600 text-white px-2 py-1 text-xs rounded-md hover:bg-green-700">Accept</button><button data-action="resolve-join-request" data-team-id="${team.id}" data-requester-id="${reqId}" data-decision="decline" class="bg-red-600 text-white px-2 py-1 text-xs rounded-md hover:bg-red-700 ml-1">Decline</button></div></div>`}).join('');
+                adminControlsHtml = `<div class="mt-4 pt-4 border-t border-slate-700 space-y-4"><h4 class="text-lg font-title text-amber-400">Admin Controls</h4><div><label for="team-desc-input-${team.id}" class="block text-sm font-medium text-slate-300 mb-1">Team Description</label><textarea id="team-desc-input-${team.id}" class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-sm" rows="2">${team.description}</textarea></div><div><label class="block text-sm font-medium text-slate-300 mb-1">Join Policy</label><div class="flex gap-4"><label class="flex items-center"><input type="radio" name="join-policy-${team.id}" value="open" ${team.joinPolicy === 'open' ? 'checked' : ''} class="mr-1"> Open</label><label class="flex items-center"><input type="radio" name="join-policy-${team.id}" value="request" ${team.joinPolicy === 'request' ? 'checked' : ''} class="mr-1"> By Request</label></div></div><button data-action="update-team-settings" data-team-id="${team.id}" class="w-full bg-amber-600 text-white font-semibold py-2 rounded-md hover:bg-amber-700">Save Settings</button>${team.requests.length > 0 ? `<div class="mt-3"><h4 class="text-sm font-semibold text-yellow-400 mb-2">Join Requests</h4><div class="space-y-2">${requestsHtml}</div></div>` : ''}</div>`;
+            }
+            this.dom.teamsPanel.innerHTML = `<div class="p-3 rounded-md bg-slate-800/50 border border-${team.color}"><div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-6 h-6 rounded-full bg-${team.color}"></div><span class="font-semibold text-2xl font-title text-white">${team.name}</span></div><button data-action="leave-team" class="bg-red-700 hover:bg-red-800 text-white font-semibold px-4 py-1 rounded-md text-sm">Leave Team</button></div><p class="text-sm text-slate-400 mt-3 italic">${team.description || 'No description.'}</p><div class="mt-3 pt-3 border-t border-slate-700 text-slate-400 text-sm">Members (${team.members.length}): <div class="flex flex-wrap gap-1 mt-1">${membersList || 'None'}</div></div>${adminControlsHtml}</div>`;
+        }
+    }
+
+    renderBuildModal(gameState) {
+        const player = gameState.player;
+        const brickCount = player?.inventory.find(i => i.name === 'Brick')?.quantity || 0;
+        let html = '';
+        
+        // Debug logging to help identify issues
+        console.log('renderBuildModal - gameState.buildingTemplates:', gameState.buildingTemplates);
+        console.log('renderBuildModal - this.staticData:', this.staticData);
+        
+        if (gameState.buildingTemplates && Object.keys(gameState.buildingTemplates).length > 0) {
+            html = Object.entries(gameState.buildingTemplates).map(([name, def]) => {
+                const canAfford = brickCount >= def.bricks;
+                const buttonDisabled = !canAfford ? 'disabled' : '';
+                const buttonClass = canAfford ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-500 cursor-not-allowed';
+                return `<div class="bg-slate-900/50 p-3 rounded-md flex justify-between items-center gap-4">
+                            <div>
+                                <h4 class="font-semibold text-lg text-white">${this.buildingIcons[name] || '🏛️'} ${name}</h4>
+                                <p class="text-sm text-slate-400">${def.description}</p>
+                            </div>
+                            <button data-action="build-building" data-building-name="${name}" ${buttonDisabled}
+                                    class="text-white font-semibold px-3 py-2 rounded-md ${buttonClass}">
+                                Build <br> (${def.bricks} 🧱)
+                            </button>
+                        </div>`;
+            }).join('');
+        } else {
+            html = '<p class="text-red-400">Building templates not available. Please wait for data to load...</p>';
+        }
+        this.dom.buildModalContent.innerHTML = html;
+    }
+
+    renderCharacterPanel(gameState) {
+        const player = gameState.player;
+        if (!player) { this.dom.characterPanel.innerHTML = `<h2 class="text-3xl font-title text-yellow-400">No Active Player</h2>`; return; }
+        if (player.isDead) { this.dom.characterPanel.innerHTML = `<h2 class="text-3xl font-title text-red-500 mb-4">You are Defeated!</h2><button class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg" data-action="respawn">Respawn</button>`; return; }
+        this.dom.characterPanel.innerHTML = this.createPlayerProfileHtml(player);
+    }
+
+    renderPlayerProfileModal(player, gameState) {
+        this.dom.playerProfileContent.innerHTML = this.createPlayerProfileHtml(player, true);
+    }
+
+    createPlayerProfileHtml(player, isModal = false) {
+        if (!player) return '';
+        const { stats, baseStats, equipment, inventory, skills } = player;
+        
+        // Add null checks for stats
+        const safeStats = {
+            hp: stats.hp || 0,
+            maxHp: stats.maxHp || 0,
+            mp: stats.mp || 0,
+            maxMp: stats.maxMp || 0,
+            stamina: stats.stamina || 0,
+            maxStamina: stats.maxStamina || 0,
+            dmg: stats.dmg || 0,
+            speed: stats.speed || 0,
+            critical: stats.critical || 0,
+            dodge: stats.dodge || 0
+        };
+        
+        const safeBaseStats = {
+            dmg: baseStats?.dmg || 0,
+            speed: baseStats?.speed || 0
+        };
+        
+        const statBonus = (current, base) => { 
+            const bonus = current - base; 
+            return bonus > 0 ? `<span class="text-green-400 font-semibold">(+${bonus.toFixed(1)})</span>` : ''; 
+        };
+        
+        let statsHtml = `
+            <div class="space-y-1">
+                <div class="flex justify-between"><span>HP</span><span>${safeStats.hp.toFixed(0)} / ${safeStats.maxHp.toFixed(0)}</span></div>${this.createBar(safeStats.hp, safeStats.maxHp, 'hp').outerHTML}
+                <div class="flex justify-between"><span>MP</span><span>${safeStats.mp.toFixed(0)} / ${safeStats.maxMp.toFixed(0)}</span></div>${this.createBar(safeStats.mp, safeStats.maxMp, 'mp').outerHTML}
+                <div class="flex justify-between"><span>Stamina</span><span>${safeStats.stamina.toFixed(0)} / ${safeStats.maxStamina.toFixed(0)}</span></div>${this.createBar(safeStats.stamina, safeStats.maxStamina, 'stamina').outerHTML}
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 mt-4">
+                <div><strong>Damage:</strong> ${safeStats.dmg.toFixed(1)} ${statBonus(safeStats.dmg, safeBaseStats.dmg)}</div>
+                <div><strong>Speed:</strong> ${safeStats.speed.toFixed(1)}/sec ${statBonus(safeStats.speed, safeBaseStats.speed)}</div>
+                <div><strong>Critical:</strong> ${safeStats.critical.toFixed(1)}%</div>
+                <div><strong>Dodge:</strong> ${safeStats.dodge.toFixed(1)}%</div>
+            </div>`;
+
+        let equipmentHtml = Object.entries(equipment).map(([slot, item], index) => `<div class="mb-2"><span class="capitalize font-semibold text-slate-400">${slot}:</span>${item ? `<div class="p-2 bg-slate-800/50 border border-blue-600 rounded-md flex justify-between items-center" title="${item.description}"><span class="text-blue-300 item-name-clickable cursor-pointer hover:text-blue-100 transition-colors" data-item-index="${index}" data-item-type="equipment">${this.getItemDisplayName(item)} (L${item.level} ${item.quality})</span>${!isModal ? `<button class="text-xs bg-red-600 text-white px-2 py-1 rounded" data-action="unequip-item" data-slot="${slot}">Unequip</button>` : ''}</div>` : '<span class="text-slate-500 italic ml-2">Empty</span>'}</div>`).join('');
+
+        let inventoryHtml = inventory.length > 0 ? inventory.map((item, index) => {
+            let actionButton = '';
+            if (!isModal) {
+                if (item.type === 'equipment') actionButton = `<button class="text-xs bg-green-600 text-white px-2 py-1 rounded" data-action="equip-item" data-item-index="${index}">Equip</button>`;
+                else if (item.type === 'consumable' || item.type === 'scroll') actionButton = `<button class="text-xs bg-sky-600 text-white px-2 py-1 rounded" data-action="use-item" data-item-index="${index}">Use</button>`;
+            }
+            
+            // Add deposit buttons for storage buildings
+            let depositButtons = '';
+            if (!isModal && this.game && this.game.gameState && this.game.gameState.cell) {
+                const site = this.game.gameState.cell.objects.find(o => o.type === 'construction_site' && o.team === player.team);
+                if (site && site.buildings) {
+                    site.buildings.forEach((building, buildingIndex) => {
+                        if (building.type === 'storage' || building.type === 'personal_storage') {
+                            const storageType = building.type;
+                            depositButtons += `<button class="text-xs bg-yellow-600 text-white px-1 py-0.5 rounded ml-1" data-action="deposit-storage" data-building-index="${buildingIndex}" data-item-index="${index}" data-storage-type="${storageType}">${storageType === 'storage' ? 'Team' : 'Personal'}</button>`;
+                        }
+                    });
+                }
+            }
+            
+            return `<div class="p-2 bg-slate-800/50 border border-slate-600 rounded-md flex justify-between items-center mb-2" title="${item.description}"><span class="item-name-clickable cursor-pointer hover:text-blue-300 transition-colors" data-item-index="${index}" data-item-type="inventory">${this.getItemDisplayName(item)} ${item.quantity ? `(x${item.quantity})` : ''}</span><div class="flex gap-1">${actionButton}${depositButtons}</div></div>`;
+        }).join('') : '<p class="text-slate-500 italic">Inventory is empty.</p>';
+
+        let skillsHtml = Object.entries(skills).map(([skillName, skillData]) => `<div><div class="flex justify-between items-center"><span class="capitalize font-semibold">${skillName} (Lvl ${skillData.level})</span></div>${this.createBar(skillData.exp, skillData.level * 100, 'xp').outerHTML}</div>`).join('');
+        const inventorySection = isModal ? '' : `<div class="mb-4"><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Inventory</h3><div class="max-h-48 overflow-y-auto custom-scrollbar pr-2">${inventoryHtml}</div></div>`;
+        return `<h2 class="text-3xl font-title text-yellow-400 mb-4">⚔️ Character: ${player.name}</h2><div class="mb-4"><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Stats</h3>${statsHtml}</div><div class="mb-4"><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Equipment</h3>${equipmentHtml}</div>${inventorySection}<div><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Skills</h3><div class="space-y-3">${skillsHtml}</div></div>`;
+    }
+
+    renderAdminPanel(gameState) {
+        const player = gameState.player;
+        if (!player || !player.isAdmin) { this.dom.adminPanel.innerHTML = ''; return; }
+    
+        // --- Config Management ---
+        const configManagerHtml = `
+            <div class="mb-6 p-4 border border-slate-600 rounded-lg">
+                <h3 class="text-xl font-title text-amber-400 mb-2">Configuration Management</h3>
+                <div class="flex gap-2">
+                    <button data-action="admin-save-config" class="flex-1 bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700">Save Config to JSON</button>
+                    <label class="flex-1 text-center bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700 cursor-pointer">
+                        Load Config from JSON
+                        <input type="file" id="admin-config-loader" class="hidden" accept=".json">
+                    </label>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">Loading a new config will reset the world and respawn enemies according to the new settings.</p>
+            </div>`;
+
+        // --- World Management ---
+        const worldManagerHtml = `
+            <div class="mb-6 p-4 border border-slate-600 rounded-lg">
+                <h3 class="text-xl font-title text-amber-400 mb-2">World Management</h3>
+                <div class="flex gap-2">
+                    <button data-action="admin-action" data-admin-command="regenerate-map" class="flex-1 bg-purple-600 text-white font-semibold py-2 rounded hover:bg-purple-700">🔄 Regenerate World Map</button>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">Regenerates the biome map with new seed-based expansion and respawns all enemies.</p>
+            </div>`;
+
+        // --- Enemy Template Editor ---
+        let enemyEditorHtml = '';
+        if (gameState.enemyTemplates) {
+            const selectedTemplateId = document.getElementById('admin-template-select')?.value;
+            const selectedTemplate = selectedTemplateId !== "" && selectedTemplateId !== null ? gameState.enemyTemplates[selectedTemplateId] : null;
+            
+            let optionsHtml = '<option value="">Select an enemy...</option>';
+            gameState.enemyTemplates.forEach((template, index) => {
+                optionsHtml += `<option value="${index}" ${index == selectedTemplateId ? 'selected' : ''}>${template.name}</option>`;
+            });
+            
+            let editorFormHtml = '';
+            if (selectedTemplate) {
+                editorFormHtml = `
+                <div class="mt-4 p-4 border border-slate-600 rounded-lg space-y-4">
+                    <h4 class="text-lg font-semibold text-yellow-300">Edit Template: ${selectedTemplate.name}</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><label>Base HP</label><input type="number" id="admin-stat-hp-${selectedTemplateId}" value="${selectedTemplate.baseStats.hp}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                        <div><label>Base Damage</label><input type="number" id="admin-stat-dmg-${selectedTemplateId}" value="${selectedTemplate.baseStats.dmg}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                        <div><label>Base Speed</label><input type="number" step="0.1" id="admin-stat-speed-${selectedTemplateId}" value="${selectedTemplate.baseStats.speed}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                        <div><label>Rarity</label><input type="number" id="admin-stat-rarity-${selectedTemplateId}" value="${selectedTemplate.rarity}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                    </div>
+                    <button data-action="admin-action" data-admin-command="update-enemy-stats" data-template-id="${selectedTemplateId}" class="w-full bg-blue-600 text-white font-semibold py-1 rounded hover:bg-blue-700">Update Base Stats</button>
+
+                    <div>
+                        <h4 class="text-sm font-semibold text-yellow-300">Loot Table</h4>
+                        <div class="space-y-1 mt-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                            ${selectedTemplate.drops.map((drop, index) => `
+                                <div class="bg-slate-800 p-1.5 rounded flex justify-between items-center text-xs">
+                                    <span>${drop.quantity[0]}-${drop.quantity[1]}x ${drop.name} (${drop.chance * 100}%)</span>
+                                    <button data-action="admin-action" data-admin-command="remove-enemy-drop" data-template-id="${selectedTemplateId}" data-drop-index="${index}" class="bg-red-700 text-white px-2 py-0.5 rounded">X</button>
+                                </div>`).join('') || '<p class="text-xs text-slate-500 italic">No drops.</p>'}
+                        </div>
+                    </div>
+                    
+                    <div>
+                         <h4 class="text-sm font-semibold text-yellow-300 mt-2">Add New Drop</h4>
+                         <div class="grid grid-cols-2 gap-2 text-sm mt-2">
+                             <div><label>Name</label><input id="admin-drop-name-${selectedTemplateId}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                             <div><label>Type</label>
+                                 <select id="admin-drop-type-${selectedTemplateId}" class="w-full bg-slate-900 p-1 rounded border border-slate-700">
+                                     <option value="material">Material</option>
+                                     <option value="equipment">Equipment</option>
+                                     <option value="consumable">Consumable</option>
+                                     <option value="scroll">Scroll</option>
+                                 </select>
+                             </div>
+                             <div><label>Chance (0-1)</label><input type="number" step="0.01" id="admin-drop-chance-${selectedTemplateId}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                             <div><label>Min Qty</label><input type="number" id="admin-drop-min-qty-${selectedTemplateId}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                             <div><label>Max Qty</label><input type="number" id="admin-drop-max-qty-${selectedTemplateId}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                         </div>
+                         <button data-action="admin-action" data-admin-command="add-enemy-drop" data-template-id="${selectedTemplateId}" class="mt-2 w-full bg-green-600 text-white font-semibold py-1 rounded hover:bg-green-700">Add Drop</button>
+                    </div>
+                </div>`;
+            }
+            enemyEditorHtml = `<div class="mb-6"><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Enemy Editor</h3>
+                <select id="admin-template-select" class="w-full bg-slate-900 border border-slate-600 rounded-md p-2">${optionsHtml}</select>${editorFormHtml}</div>`;
+        }
+
+        // --- Recipe Editor ---
+        let recipeEditorHtml = '';
+        if (gameState.craftingRecipes) {
+            const selectedRecipeId = document.getElementById('admin-recipe-select')?.value;
+            const selectedRecipe = selectedRecipeId !== "" && selectedRecipeId !== null ? gameState.craftingRecipes.find(r => r.id == selectedRecipeId) : null;
+
+            let optionsHtml = '<option value="">Select a recipe...</option>';
+            gameState.craftingRecipes.forEach(recipe => {
+                optionsHtml += `<option value="${recipe.id}" ${recipe.id == selectedRecipeId ? 'selected' : ''}>${recipe.name}</option>`;
+            });
+
+            let editorFormHtml = '';
+            if (selectedRecipe) {
+                const materialRows = selectedRecipe.materials.map(mat => `
+                    <div class="flex items-center gap-2 material-row">
+                        <input class="material-name w-1/2 bg-slate-900 p-1 rounded border border-slate-700" value="${mat.name}" placeholder="Item Name">
+                        <input class="material-quantity w-1/4 bg-slate-900 p-1 rounded border border-slate-700" type="number" value="${mat.quantity}" placeholder="Qty">
+                        <button data-action="admin-remove-material" class="bg-red-700 text-white px-2 py-1 rounded text-xs">X</button>
+                    </div>
+                `).join('');
+
+                const result = selectedRecipe.result || {};
+                const resultSlotHtml = result.type === 'equipment' ? `<div><label>Slot</label><input id="admin-result-slot" value="${result.slot || ''}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>` : '';
+
+                editorFormHtml = `
+                <div class="mt-4 p-4 border border-slate-600 rounded-lg space-y-3 text-sm">
+                    <div><label>Recipe Name</label><input id="admin-recipe-name" value="${selectedRecipe.name}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                    
+                    <div>
+                        <label>Materials</label>
+                        <div id="admin-recipe-materials-list" class="space-y-1">${materialRows}</div>
+                        <button data-action="admin-add-material" class="text-xs bg-green-600 text-white px-2 py-1 rounded mt-1">Add Material</button>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-semibold text-yellow-300 mt-2">Result Item</h4>
+                        <div class="grid grid-cols-2 gap-2 mt-1">
+                            <div><label>Name</label><input id="admin-result-name" value="${result.name || ''}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                            <div><label>Type</label>
+                                <select id="admin-result-type" class="w-full bg-slate-900 p-1 rounded border border-slate-700">
+                                    <option value="material" ${result.type === 'material' ? 'selected' : ''}>Material</option>
+                                    <option value="equipment" ${result.type === 'equipment' ? 'selected' : ''}>Equipment</option>
+                                    <option value="consumable" ${result.type === 'consumable' ? 'selected' : ''}>Consumable</option>
+                                    <option value="scroll" ${result.type === 'scroll' ? 'selected' : ''}>Scroll</option>
+                                </select>
+                            </div>
+                            ${resultSlotHtml}
+                            <div><label>Level</label><input id="admin-result-level" type="number" value="${result.level || 1}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                            <div><label>Quality</label><input id="admin-result-quality" value="${result.quality || 'Common'}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                            <div class="col-span-2"><label>Description</label><input id="admin-result-description" value="${result.description || ''}" class="w-full bg-slate-900 p-1 rounded border border-slate-700"></div>
+                            <div class="col-span-2"><label>Stats (JSON)</label><textarea id="admin-result-stats" rows="2" class="w-full bg-slate-900 p-1 rounded border border-slate-700 font-mono text-xs">${JSON.stringify(result.stats || {}, null, 2)}</textarea></div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 pt-2 border-t border-slate-700">
+                        <button data-action="admin-action" data-admin-command="recipe-save" data-recipe-id="${selectedRecipe.id}" class="flex-1 bg-blue-600 text-white font-semibold py-1 rounded hover:bg-blue-700">Save Recipe</button>
+                        <button data-action="admin-action" data-admin-command="recipe-delete" data-recipe-id="${selectedRecipe.id}" class="bg-red-700 text-white font-semibold px-3 rounded hover:bg-red-800">Delete</button>
+                    </div>
+                </div>`;
+            }
+             recipeEditorHtml = `<div class="mb-6"><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Recipe Editor</h3>
+                <div class="flex gap-2">
+                    <select id="admin-recipe-select" class="flex-1 w-full bg-slate-900 border border-slate-600 rounded-md p-2">${optionsHtml}</select>
+                    <button data-action="admin-action" data-admin-command="recipe-create" class="bg-green-600 text-white font-semibold px-3 rounded hover:bg-green-700">New</button>
+                </div>
+                ${editorFormHtml}</div>`;
+        }
+
+        // --- Building Editor ---
+        let buildingEditorHtml = '';
+        if (gameState.buildingTemplates) {
+            const selectedBuildingName = document.getElementById('admin-building-select')?.value;
+            const selectedBuilding = selectedBuildingName ? gameState.buildingTemplates[selectedBuildingName] : null;
+
+            let optionsHtml = '<option value="">Select a building...</option>';
+            Object.keys(gameState.buildingTemplates).forEach(name => {
+                optionsHtml += `<option value="${name}" ${name === selectedBuildingName ? 'selected' : ''}>${name}</option>`;
+            });
+
+            let editorFormHtml = '';
+            if (selectedBuilding && selectedBuilding.type === 'crafting') {
+                const recipeOptions = gameState.craftingRecipes.map(r => {
+                    const isSelected = selectedBuilding.recipeIds?.includes(r.id);
+                    return `<option value="${r.id}" ${isSelected ? 'selected' : ''}>${r.name}</option>`;
+                }).join('');
+
+                editorFormHtml = `
+                <div class="mt-4 p-4 border border-slate-600 rounded-lg space-y-2 text-sm">
+                     <h4 class="text-lg font-semibold text-yellow-300">Assign Recipes: ${selectedBuildingName}</h4>
+                     <label>Select recipes (Ctrl/Cmd + Click for multiple)</label>
+                     <select id="admin-building-recipes" multiple class="w-full h-32 bg-slate-900 p-1 rounded border border-slate-700">${recipeOptions}</select>
+                     <button data-action="admin-action" data-admin-command="building-save" data-building-name="${selectedBuildingName}" class="w-full bg-blue-600 text-white font-semibold py-1 rounded hover:bg-blue-700">Save Building Recipes</button>
+                </div>`;
+            }
+
+            buildingEditorHtml = `<div class="mb-6"><h3 class="text-xl font-title text-amber-400 mb-2 border-b border-slate-600 pb-1">Building Editor</h3>
+                <select id="admin-building-select" class="w-full bg-slate-900 border border-slate-600 rounded-md p-2">${optionsHtml}</select>${editorFormHtml}</div>`;
+        }
+
+
+        this.dom.adminPanel.innerHTML = `<h2 class="text-3xl font-title text-yellow-400 mb-4">🛠️ Admin Panel</h2>${configManagerHtml}${worldManagerHtml}${enemyEditorHtml}${recipeEditorHtml}${buildingEditorHtml}`;
+    }
+
+    addRecipeMaterialRow() {
+        const list = document.getElementById('admin-recipe-materials-list');
+        if (!list) return;
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 material-row';
+        row.innerHTML = `
+            <input class="material-name w-1/2 bg-slate-900 p-1 rounded border border-slate-700" placeholder="Item Name">
+            <input class="material-quantity w-1/4 bg-slate-900 p-1 rounded border border-slate-700" type="number" placeholder="Qty">
+            <button data-action="admin-remove-material" class="bg-red-700 text-white px-2 py-1 rounded text-xs">X</button>
+        `;
+        list.appendChild(row);
+    }
+
+    updateChatChannelButtons() {
+        this.dom.chat.channels.querySelectorAll('button').forEach(btn => { btn.classList.toggle('active', btn.dataset.channel === this.clientState.chatChannel); });
+    }
+
+    renderFullChannel(messages, channel, gameState) {
+        const chatBox = this.dom.chat.messages;
+        if (!messages) return;
+        
+        // Store current scroll position
+        const wasScrolledToBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 5;
+        
+        // Check if we need to re-render by comparing message count
+        const visibleMessages = messages.filter(msg => {
+            if (msg.channel === 'system') return true;
+            if (channel === 'area') {
+                const player = gameState.player;
+                return player && msg.location && msg.location.x === player.x && msg.location.y === player.y;
+            }
+            return true;
+        });
+        
+        const newMessageCount = visibleMessages.length;
+        
+        // Only re-render if the number of visible messages has changed
+        if (this.lastRenderedMessageCount === newMessageCount && newMessageCount > 0) {
+            return;
+        }
+        
+        this.lastRenderedMessageCount = newMessageCount;
+        
+        chatBox.innerHTML = '';
+        const player = gameState.player;
+        messages.forEach(msg => {
+            if (msg.channel === 'system') chatBox.appendChild(this.createSystemMessageElement(msg));
+            else {
+                let shouldShow = true;
+                if (channel === 'area' && (!player || !msg.location || msg.location.x !== player.x || msg.location.y !== player.y)) shouldShow = false;
+                if (shouldShow) chatBox.appendChild(this.createChatMessageElement(msg, gameState));
+            }
+        });
+        
+        // Only scroll to bottom if user was already at bottom
+        if (wasScrolledToBottom) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+    
+    appendChatMessage(msg, gameState) {
+        const chatBox = this.dom.chat.messages;
+        const player = gameState.player;
+        if (!player || (msg.channel === 'area' && (msg.location.x !== player.x || msg.location.y !== player.y))) return;
+        const isScrolledToBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 5;
+        chatBox.appendChild(this.createChatMessageElement(msg, gameState));
+        if (isScrolledToBottom) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    appendSystemMessage(msg) {
+        const chatBox = this.dom.chat.messages;
+        const isScrolledToBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 5;
+        chatBox.appendChild(this.createSystemMessageElement(msg));
+        if (isScrolledToBottom) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    createChatMessageElement(msg, gameState) {
+        const teamData = (msg.senderTeam && gameState.teams) ? gameState.teams[msg.senderTeam] : null;
+        const teamColorClass = teamData ? `text-${teamData.color.split('-')[0]}-400` : 'text-gray-400';
+        const channelTag = `[${msg.channel.charAt(0).toUpperCase()}]`;
+        const msgDiv = document.createElement('div');
+        msgDiv.innerHTML = `<span class="text-slate-500">${msg.timestamp}</span> <span class="font-semibold mx-1 ${teamColorClass}">${channelTag} <span data-action="show-player-profile" data-player-id="${msg.senderId}" class="cursor-pointer hover:underline">${msg.senderName}</span>:</span> <span>${msg.text}</span>`;
+        return msgDiv;
+    }
+
+    createSystemMessageElement(msg) {
+        const msgDiv = document.createElement('div');
+        if (msg.type === 'combatLog') {
+            msgDiv.className = 'text-slate-400 text-sm';
+            msgDiv.textContent = `[${msg.timestamp || ''}] ${msg.text || ''}`;
+        } else {
+            msgDiv.className = 'text-yellow-400 italic text-sm';
+            const text = msg.text || '';
+            const textContent = text.includes(']') ? text.substring(text.indexOf(']') + 2) : text;
+            msgDiv.textContent = `[${msg.timestamp || ''}] ${textContent}`;
+        }
+        return msgDiv;
+    }
+
+    createBar(current, max, type) {
+        const outer = document.createElement('div');
+        let barClass = '';
+        switch(type) {
+            case 'hp': barClass = 'hp-bar-foreground'; break;
+            case 'mp': barClass = 'mp-bar-foreground'; break;
+            case 'stamina': barClass = 'stamina-bar-foreground'; break;
+            case 'xp': barClass = 'xp-bar-foreground'; break;
+            case 'brick': barClass = 'brick-bar-foreground'; break;
+            case 'construction': barClass = 'construction-bar-foreground'; break;
+        }
+        outer.className = 'w-full bg-slate-900/50 rounded-full h-2.5 mt-1 border border-slate-600';
+        const inner = document.createElement('div');
+        inner.className = `${barClass} h-2 rounded-full m-px`;
+        inner.style.width = `calc(${Math.max(0, (current / max) * 100)}% - 2px)`;
+        outer.appendChild(inner);
+        return outer;
+    }
+
+    renderMapView(gameState) {
+        const grid = this.dom.mainViewContent;
+        
+        // Update the main view title
+        this.dom.mainViewTitle.innerHTML = '🗺️ World Map';
+        
+        grid.innerHTML = `
+            <div class="bg-gray-800 rounded-lg p-4 overflow-auto" style="max-height: 600px;">
+                <div id="map-container" class="relative">
+                    <div id="map-canvas" class="relative"></div>
+                </div>
+            </div>
+        `;
+
+        const mapContainer = document.getElementById('map-container');
+        const mapCanvas = document.getElementById('map-canvas');
+        const biomeGrid = document.createElement('div');
+        
+        const MAP_SIZE = 20;
+        const containerSize = Math.min(600, Math.max(400, mapContainer.offsetWidth));
+        const cellSize = Math.max(20, Math.min(40, Math.floor(containerSize / MAP_SIZE)));
+        
+        biomeGrid.className = 'grid gap-1';
+        biomeGrid.style.gridTemplateColumns = `repeat(${MAP_SIZE}, ${cellSize}px)`;
+        biomeGrid.style.gridTemplateRows = `repeat(${MAP_SIZE}, ${cellSize}px)`;
+        biomeGrid.style.width = `${MAP_SIZE * cellSize}px`;
+        biomeGrid.style.height = `${MAP_SIZE * cellSize}px`;
+        
+        const playerX = gameState.player?.x || 0;
+        const playerY = gameState.player?.y || 0;
+        
+        // Define adjacent positions (up, down, left, right, diagonals)
+        const adjacentPositions = [
+            {x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1},
+            {x: -1, y: 0}, {x: 1, y: 0},
+            {x: -1, y: 1}, {x: 0, y: 1}, {x: 1, y: 1}
+        ];
+        
+        for (let y = 0; y < MAP_SIZE; y++) {
+            for (let x = 0; x < MAP_SIZE; x++) {
+                const cell = document.createElement('div');
+                const biomeKey = gameState.biomeMap?.[`${x},${y}`] || 'FOREST';
+                const biome = CONFIG.BIOMES[biomeKey];
+                
+                const isPlayerHere = x === playerX && y === playerY;
+                const isAdjacent = adjacentPositions.some(pos => 
+                    (playerX + pos.x) === x && (playerY + pos.y) === y
+                );
+                
+                cell.className = `relative border-2 cursor-pointer transition-all duration-200 ${biome.color} ${biome.borderColor}`;
+                cell.style.width = `${cellSize}px`;
+                cell.style.height = `${cellSize}px`;
+                
+                // Highlight adjacent tiles
+                if (isAdjacent) {
+                    cell.className += ' ring-2 ring-yellow-400 ring-opacity-75 shadow-lg';
+                    cell.style.transform = 'scale(1.05)';
+                }
+                
+                // Highlight player position
+                if (isPlayerHere) {
+                    cell.className += ' ring-2 ring-white ring-opacity-100 shadow-lg';
+                    cell.style.transform = 'scale(1.1)';
+                }
+                
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+                
+                if (isPlayerHere) {
+                    cell.innerHTML = '<div class="absolute inset-0 bg-white rounded-full opacity-80"></div>';
+                    cell.title = `You are here (${x}, ${y}) - ${biome.name}`;
+                } else if (isAdjacent) {
+                    cell.innerHTML = '<div class="absolute inset-0 bg-yellow-400 rounded opacity-30"></div>';
+                    cell.title = `Click to move to (${x}, ${y}) - ${biome.name}`;
+                } else {
+                    cell.title = `(${x}, ${y}) - ${biome.name}`;
+                }
+                
+                // Add data-action for proper event handling
+                cell.setAttribute('data-action', 'move-to-tile');
+                cell.setAttribute('data-x', x);
+                cell.setAttribute('data-y', y);
+                
+                biomeGrid.appendChild(cell);
+            }
+        }
+        
+        mapCanvas.appendChild(biomeGrid);
+        mapContainer.appendChild(mapCanvas);
+        grid.appendChild(mapContainer);
+    }
+
+    appendCombatMessage(payload) {
+        const msg = { 
+            channel: 'combat', 
+            text: payload.message, 
+            type: 'combatLog', 
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
+        };
+        this.client.chatCache.combat.push(msg);
+        if (this.client.chatCache.combat.length > 150) this.client.chatCache.combat.shift();
+        if (this.client.clientState.chatChannel === 'combat') this.appendSystemMessage(msg);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const client = new GameClient();
+    client.init();
+});
+</script>
+</body>
+</html>

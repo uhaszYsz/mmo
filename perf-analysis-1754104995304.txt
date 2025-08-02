@@ -1,0 +1,343 @@
+(node:384) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Statistical profiling result from isolate-0000022BDDD4B020-14420-v8.log, (2466 ticks, 0 unaccounted, 0 excluded).
+
+ [Shared libraries]:
+   ticks  total  nonlib   name
+   1882   76.3%          C:\WINDOWS\SYSTEM32\ntdll.dll
+    318   12.9%          C:\Program Files\nodejs\node.exe
+      2    0.1%          C:\WINDOWS\System32\KERNEL32.DLL
+      1    0.0%          C:\WINDOWS\System32\KERNELBASE.dll
+
+ [JavaScript]:
+   ticks  total  nonlib   name
+     89    3.6%   33.8%  LazyCompile: *findPlayerById C:\Users\tengo\Desktop\mmo2backup\game.js:137:19
+     25    1.0%    9.5%  LazyCompile: *handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+     24    1.0%    9.1%  LazyCompile: *startPvECombat C:\Users\tengo\Desktop\mmo2backup\combat.js:85:24
+     24    1.0%    9.1%  LazyCompile: *handleChatMessage C:\Users\tengo\Desktop\mmo2backup\chat.js:8:27
+     20    0.8%    7.6%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:232:27
+     12    0.5%    4.6%  LazyCompile: *updateWorldState C:\Users\tengo\Desktop\mmo2backup\world.js:7:26
+     12    0.5%    4.6%  LazyCompile: *updateWorldState C:\Users\tengo\Desktop\mmo2backup\game.js:559:21
+      9    0.4%    3.4%  LazyCompile: *attackNearbyEnemies C:\Users\tengo\Desktop\mmo2backup\update.js:344:29
+      8    0.3%    3.0%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      6    0.2%    2.3%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:348:47
+      5    0.2%    1.9%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\world.js:9:32
+      5    0.2%    1.9%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:258:23
+      4    0.2%    1.5%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      4    0.2%    1.5%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\game.js:148:40
+      3    0.1%    1.1%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:222:42
+      2    0.1%    0.8%  LazyCompile: *updateMobCombat C:\Users\tengo\Desktop\mmo2backup\update.js:144:25
+      2    0.1%    0.8%  LazyCompile: *moveFakePlayerRandomly C:\Users\tengo\Desktop\mmo2backup\update.js:305:32
+      2    0.1%    0.8%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      2    0.1%    0.8%  LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\crafting.js:115:32
+      1    0.0%    0.4%  LazyCompile: *stopCombat C:\Users\tengo\Desktop\mmo2backup\game.js:606:15
+      1    0.0%    0.4%  LazyCompile: *logCombat C:\Users\tengo\Desktop\mmo2backup\game.js:116:14
+      1    0.0%    0.4%  LazyCompile: *findEntityById C:\Users\tengo\Desktop\mmo2backup\game.js:151:19
+      1    0.0%    0.4%  LazyCompile: *Module._load node:internal/modules/cjs/loader:888:24
+      1    0.0%    0.4%  Function: ^processTimers node:internal/timers:497:25
+
+ [C++]:
+   ticks  total  nonlib   name
+
+ [Summary]:
+   ticks  total  nonlib   name
+    263   10.7%  100.0%  JavaScript
+      0    0.0%    0.0%  C++
+      5    0.2%    1.9%  GC
+   2203   89.3%          Shared libraries
+
+ [C++ entry points]:
+   ticks    cpp   total   name
+
+ [Bottom up (heavy) profile]:
+  Note: percentage shows a share of a particular caller in the total
+  amount of its parent calls.
+  Callers occupying less than 1.0% are not shown.
+
+   ticks parent  name
+   1882   76.3%  C:\WINDOWS\SYSTEM32\ntdll.dll
+
+    318   12.9%  C:\Program Files\nodejs\node.exe
+     64   20.1%    C:\Program Files\nodejs\node.exe
+     10   15.6%      Function: ^findPlayerById C:\Users\tengo\Desktop\mmo2backup\game.js:137:19
+      6   60.0%        Function: ^updateMobCombat C:\Users\tengo\Desktop\mmo2backup\update.js:144:25
+      6  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      6  100.0%            C:\Program Files\nodejs\node.exe
+      2   20.0%        Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:258:23
+      2  100.0%          C:\Program Files\nodejs\node.exe
+      2  100.0%            Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+      2   20.0%        Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:232:27
+      2  100.0%          C:\Program Files\nodejs\node.exe
+      2  100.0%            Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:231:19
+      6    9.4%      LazyCompile: *logEvent C:\Users\tengo\Desktop\mmo2backup\game.js:69:13
+      2   33.3%        LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+      2  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      2  100.0%            C:\Program Files\nodejs\node.exe
+      2   33.3%        LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      2  100.0%          C:\Program Files\nodejs\node.exe
+      2  100.0%            Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+      1   16.7%        Function: ^attackNearbyEnemies C:\Users\tengo\Desktop\mmo2backup\update.js:344:29
+      1  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1  100.0%            C:\Program Files\nodejs\node.exe
+      1   16.7%        Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:232:27
+      1  100.0%          C:\Program Files\nodejs\node.exe
+      1  100.0%            Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:231:19
+      6    9.4%      LazyCompile: *handleChatMessage C:\Users\tengo\Desktop\mmo2backup\chat.js:8:27
+      4   66.7%        LazyCompile: *sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      4  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      4  100.0%            C:\Program Files\nodejs\node.exe
+      2   33.3%        Function: ^sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      2  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      2  100.0%            C:\Program Files\nodejs\node.exe
+      6    9.4%      Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+      6  100.0%        Function: ^handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+      6  100.0%          Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:155:30
+      6  100.0%            Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+      4    6.3%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      4  100.0%        C:\Program Files\nodejs\node.exe
+      4  100.0%          Function: ^updatePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:37:23
+      4  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      3    4.7%      LazyCompile: *startPvECombat C:\Users\tengo\Desktop\mmo2backup\combat.js:85:24
+      3  100.0%        LazyCompile: *attackNearbyEnemies C:\Users\tengo\Desktop\mmo2backup\update.js:344:29
+      2   66.7%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      2  100.0%            C:\Program Files\nodejs\node.exe
+      1   33.3%          Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1  100.0%            C:\Program Files\nodejs\node.exe
+      3    4.7%      LazyCompile: *Module._load node:internal/modules/cjs/loader:888:24
+      3  100.0%        LazyCompile: *require node:internal/modules/cjs/helpers:119:31
+      2   66.7%          Function: ^update C:\Users\tengo\Desktop\mmo2backup\game.js:762:11
+      2  100.0%            Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\game.js:65:21
+      1   33.3%          Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      1  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\game.js:762:11
+      3    4.7%      Function: ^compileForInternalLoader node:internal/bootstrap/loaders:320:27
+      3  100.0%        Function: ^requireBuiltin node:internal/bootstrap/loaders:357:24
+      1   33.3%          LazyCompile: ~lazyWebCrypto node:crypto:125:23
+      1  100.0%            LazyCompile: ~get node:crypto:369:8
+      1   33.3%          Function: ~<anonymous> node:internal/child_process:1:1
+      1  100.0%            Function: ^compileForInternalLoader node:internal/bootstrap/loaders:320:27
+      1   33.3%          Function: ~<anonymous> node:https:1:1
+      1  100.0%            Function: ^compileForInternalLoader node:internal/bootstrap/loaders:320:27
+      2    3.1%      LazyCompile: *handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+      2  100.0%        LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+      2  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      2  100.0%            C:\Program Files\nodejs\node.exe
+      2    3.1%      LazyCompile: *attackNearbyEnemies C:\Users\tengo\Desktop\mmo2backup\update.js:344:29
+      2  100.0%        LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      2  100.0%          C:\Program Files\nodejs\node.exe
+      2  100.0%            Function: ^updateFakePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:260:27
+      2    3.1%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\server.js:19:5
+      2  100.0%        Function: ^handleChatMessage C:\Users\tengo\Desktop\mmo2backup\chat.js:8:27
+      2  100.0%          Function: ^sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      2  100.0%            LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      2    3.1%      Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\server.js:19:5
+      1   50.0%        Function: ^logEvent C:\Users\tengo\Desktop\mmo2backup\game.js:69:13
+      1  100.0%          Function: ^attackNearbyEnemies C:\Users\tengo\Desktop\mmo2backup\update.js:344:29
+      1  100.0%            LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1   50.0%        Function: ^handleChatMessage C:\Users\tengo\Desktop\mmo2backup\chat.js:8:27
+      1  100.0%          Function: ^sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      1  100.0%            LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1    1.6%      LazyCompile: ~openSync node:fs:594:18
+      1  100.0%        LazyCompile: ~readFileSync node:fs:468:22
+      1  100.0%          LazyCompile: ~Module._extensions..js node:internal/modules/cjs/loader:1265:37
+      1  100.0%            LazyCompile: ~Module.load node:internal/modules/cjs/loader:1107:33
+      1    1.6%      LazyCompile: ~internalCompileFunction node:internal/vm:31:33
+      1  100.0%        LazyCompile: ~wrapSafe node:internal/modules/cjs/loader:1154:18
+      1  100.0%          LazyCompile: ~Module._compile node:internal/modules/cjs/loader:1210:37
+      1  100.0%            LazyCompile: ~Module._extensions..js node:internal/modules/cjs/loader:1265:37
+      1    1.6%      LazyCompile: ~Script node:vm:64:14
+      1  100.0%        LazyCompile: ~createScript node:vm:250:22
+      1  100.0%          LazyCompile: ~runInNewContext node:vm:286:25
+      1  100.0%            LazyCompile: ~getInternalGlobal node:internal/util:559:27
+      1    1.6%      LazyCompile: *addEntityToLookup C:\Users\tengo\Desktop\mmo2backup\game.js:162:22
+      1  100.0%        Function: ^global.spawn C:\Users\tengo\Desktop\mmo2backup\server.js:437:24
+      1  100.0%          LazyCompile: ~<anonymous> C:\Users\tengo\Desktop\mmo2backup\server.js:382:15
+      1  100.0%            LazyCompile: ~<anonymous> node:internal/readline/interface:415:12
+      1    1.6%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\world.js:9:32
+      1  100.0%        C:\Program Files\nodejs\node.exe
+      1  100.0%          Function: ^updateWorldState C:\Users\tengo\Desktop\mmo2backup\world.js:7:26
+      1  100.0%            Function: ^updateWorldState C:\Users\tengo\Desktop\mmo2backup\game.js:559:21
+      1    1.6%      Function: ~<anonymous> node:internal/process/esm_loader:1:1
+      1  100.0%        Function: ~<anonymous> node:internal/modules/cjs/loader:1:1
+      1  100.0%          LazyCompile: ~initializeCJSLoader node:internal/process/pre_execution:534:29
+      1  100.0%            LazyCompile: ~setupUserModules node:internal/process/pre_execution:112:26
+      1    1.6%      Function: ~<anonymous> node:internal/modules/esm/fetch_module:1:1
+      1  100.0%        Function: ~<anonymous> node:internal/modules/esm/get_format:1:1
+      1  100.0%          Function: ~<anonymous> node:internal/modules/esm/resolve:1:1
+      1  100.0%            Function: ~<anonymous> node:internal/modules/esm/loader:1:1
+      1    1.6%      Function: ~<anonymous> node:internal/modules/cjs/helpers:1:1
+      1  100.0%        Function: ~<anonymous> node:internal/source_map/source_map_cache:1:1
+      1  100.0%          LazyCompile: ~initializeSourceMapsHandlers node:internal/process/pre_execution:573:38
+      1  100.0%            LazyCompile: ~prepareExecution node:internal/process/pre_execution:52:26
+      1    1.6%      Function: ^receiveMessageOnPort node:internal/worker/io:408:30
+      1  100.0%        Function: ^structuredClone node:internal/structured_clone:13:25
+      1  100.0%          Function: ^spawnBiomeEnemy C:\Users\tengo\Desktop\mmo2backup\biomes.js:72:25
+      1  100.0%            Function: ^spawnBiomeEnemies C:\Users\tengo\Desktop\mmo2backup\biomes.js:56:27
+      1    1.6%      Function: ^openSync node:fs:594:18
+      1  100.0%        Function: ^readFileSync node:fs:468:22
+      1  100.0%          LazyCompile: ~Module._extensions..js node:internal/modules/cjs/loader:1265:37
+      1  100.0%            Function: ^Module.load node:internal/modules/cjs/loader:1107:33
+      1    1.6%      Function: ^listOnTimeout node:internal/timers:517:25
+      1  100.0%        Function: ^processTimers node:internal/timers:497:25
+      1    1.6%      Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:155:30
+      1  100.0%        Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+      1  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      1  100.0%            C:\Program Files\nodejs\node.exe
+      1    1.6%      Function: ^handleChatMessage C:\Users\tengo\Desktop\mmo2backup\chat.js:8:27
+      1  100.0%        Function: ^sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      1  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1  100.0%            C:\Program Files\nodejs\node.exe
+      1    1.6%      Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:231:19
+      1  100.0%        C:\Program Files\nodejs\node.exe
+      1  100.0%          Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+      1  100.0%            Function: ^handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+      1    1.6%      C:\Program Files\nodejs\node.exe
+      1  100.0%        LazyCompile: *global.spawn C:\Users\tengo\Desktop\mmo2backup\server.js:437:24
+      1  100.0%          LazyCompile: ~<anonymous> C:\Users\tengo\Desktop\mmo2backup\server.js:382:15
+      1  100.0%            LazyCompile: ~<anonymous> node:internal/readline/interface:415:12
+     30    9.4%    LazyCompile: *handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+     30  100.0%      LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+     30  100.0%        LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+     30  100.0%          C:\Program Files\nodejs\node.exe
+     30  100.0%            Function: ^updatePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:37:23
+     28    8.8%    LazyCompile: *sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+     28  100.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+     28  100.0%        C:\Program Files\nodejs\node.exe
+     28  100.0%          Function: ^updateFakePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:260:27
+     28  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+     22    6.9%    Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:232:27
+     19   86.4%      C:\Program Files\nodejs\node.exe
+     19  100.0%        Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:231:19
+     19  100.0%          C:\Program Files\nodejs\node.exe
+     19  100.0%            Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+      3   13.6%      LazyCompile: *handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+      3  100.0%        LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+      3  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      3  100.0%            C:\Program Files\nodejs\node.exe
+     15    4.7%    LazyCompile: *updateMobCombat C:\Users\tengo\Desktop\mmo2backup\update.js:144:25
+     15  100.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+     15  100.0%        C:\Program Files\nodejs\node.exe
+     15  100.0%          Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+     15  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+     13    4.1%    LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+     13  100.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+     13  100.0%        C:\Program Files\nodejs\node.exe
+     13  100.0%          Function: ^updatePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:37:23
+     13  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+     13    4.1%    Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:222:42
+     13  100.0%      C:\Program Files\nodejs\node.exe
+     13  100.0%        Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+     13  100.0%          Function: ^handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+     13  100.0%            Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:155:30
+      8    2.5%    Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:258:23
+      8  100.0%      C:\Program Files\nodejs\node.exe
+      8  100.0%        Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+      8  100.0%          Function: ^handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+      8  100.0%            Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:155:30
+      7    2.2%    LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      7  100.0%      C:\Program Files\nodejs\node.exe
+      7  100.0%        Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+      7  100.0%          Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      7  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\game.js:762:11
+      6    1.9%    Function: ^updateWorldState C:\Users\tengo\Desktop\mmo2backup\world.js:7:26
+      6  100.0%      Function: ^updateWorldState C:\Users\tengo\Desktop\mmo2backup\game.js:559:21
+      5   83.3%        Function: ^startPvECombat C:\Users\tengo\Desktop\mmo2backup\combat.js:85:24
+      5  100.0%          Function: ^attackNearbyEnemies C:\Users\tengo\Desktop\mmo2backup\update.js:344:29
+      4   80.0%            LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1   20.0%            Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1   16.7%        Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      1  100.0%          Function: ^update C:\Users\tengo\Desktop\mmo2backup\game.js:762:11
+      1  100.0%            Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\game.js:65:21
+      6    1.9%    Function: ^sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      6  100.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      6  100.0%        C:\Program Files\nodejs\node.exe
+      6  100.0%          Function: ^updateFakePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:260:27
+      6  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      4    1.3%    LazyCompile: *findEntityById C:\Users\tengo\Desktop\mmo2backup\game.js:151:19
+      4  100.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      4  100.0%        C:\Program Files\nodejs\node.exe
+      4  100.0%          Function: ^updatePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:37:23
+      4  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      4    1.3%    Function: ^updateMobCombat C:\Users\tengo\Desktop\mmo2backup\update.js:144:25
+      3   75.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      3  100.0%        C:\Program Files\nodejs\node.exe
+      3  100.0%          Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+      3  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      1   25.0%      Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      1  100.0%        C:\Program Files\nodejs\node.exe
+      1  100.0%          Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+      1  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      4    1.3%    Function: ^findPlayerById C:\Users\tengo\Desktop\mmo2backup\game.js:137:19
+      3   75.0%      Function: ^handleChatMessage C:\Users\tengo\Desktop\mmo2backup\chat.js:8:27
+      3  100.0%        Function: ^sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      2   66.7%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      2  100.0%            C:\Program Files\nodejs\node.exe
+      1   33.3%          Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      1  100.0%            C:\Program Files\nodejs\node.exe
+      1   25.0%      Function: ^updateMobCombat C:\Users\tengo\Desktop\mmo2backup\update.js:144:25
+      1  100.0%        LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      1  100.0%          C:\Program Files\nodejs\node.exe
+      1  100.0%            Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+
+     89    3.6%  LazyCompile: *findPlayerById C:\Users\tengo\Desktop\mmo2backup\game.js:137:19
+     21   23.6%    LazyCompile: *handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+     20   95.2%      LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+     20  100.0%        LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+     20  100.0%          C:\Program Files\nodejs\node.exe
+     20  100.0%            Function: ^updatePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:37:23
+      1    4.8%      Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:155:30
+      1  100.0%        Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+      1  100.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      1  100.0%            C:\Program Files\nodejs\node.exe
+     17   19.1%    LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+     17  100.0%      C:\Program Files\nodejs\node.exe
+     17  100.0%        Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+     17  100.0%          Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+     17  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\game.js:762:11
+     13   14.6%    LazyCompile: *updateMobCombat C:\Users\tengo\Desktop\mmo2backup\update.js:144:25
+     12   92.3%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+     12  100.0%        C:\Program Files\nodejs\node.exe
+     12  100.0%          Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+     12  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+      1    7.7%      Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      1  100.0%        C:\Program Files\nodejs\node.exe
+      1  100.0%          Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+      1  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+     12   13.5%    Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:258:23
+     12  100.0%      C:\Program Files\nodejs\node.exe
+     12  100.0%        Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+     12  100.0%          Function: ^handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+     12  100.0%            Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:155:30
+     12   13.5%    Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:232:27
+      7   58.3%      C:\Program Files\nodejs\node.exe
+      7  100.0%        Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:231:19
+      7  100.0%          C:\Program Files\nodejs\node.exe
+      7  100.0%            Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+      5   41.7%      LazyCompile: *handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+      5  100.0%        LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+      4   80.0%          LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      4  100.0%            C:\Program Files\nodejs\node.exe
+      1   20.0%          Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+      1  100.0%            C:\Program Files\nodejs\node.exe
+      7    7.9%    Function: ^<anonymous> C:\Users\tengo\Desktop\mmo2backup\combat.js:222:42
+      7  100.0%      C:\Program Files\nodejs\node.exe
+      7  100.0%        Function: ^distributeDrops C:\Users\tengo\Desktop\mmo2backup\combat.js:218:25
+      7  100.0%          Function: ^handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+      7  100.0%            Function: ^handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:155:30
+      6    6.7%    Function: ^handleChatMessage C:\Users\tengo\Desktop\mmo2backup\chat.js:8:27
+      6  100.0%      Function: ^sendFakePlayerChat C:\Users\tengo\Desktop\mmo2backup\update.js:375:28
+      6  100.0%        LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:268:30
+      6  100.0%          C:\Program Files\nodejs\node.exe
+      6  100.0%            Function: ^updateFakePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:260:27
+      1    1.1%    Function: ^updateMobCombat C:\Users\tengo\Desktop\mmo2backup\update.js:144:25
+      1  100.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:104:32
+      1  100.0%        C:\Program Files\nodejs\node.exe
+      1  100.0%          Function: ^updateObjects C:\Users\tengo\Desktop\mmo2backup\update.js:102:23
+      1  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+
+     25    1.0%  LazyCompile: *handleMobDefeated C:\Users\tengo\Desktop\mmo2backup\combat.js:191:27
+     25  100.0%    LazyCompile: *handleTargetDefeated C:\Users\tengo\Desktop\mmo2backup\game.js:808:25
+     25  100.0%      LazyCompile: *<anonymous> C:\Users\tengo\Desktop\mmo2backup\update.js:41:32
+     25  100.0%        C:\Program Files\nodejs\node.exe
+     25  100.0%          Function: ^updatePlayers C:\Users\tengo\Desktop\mmo2backup\update.js:37:23
+     25  100.0%            Function: ^update C:\Users\tengo\Desktop\mmo2backup\update.js:8:16
+
